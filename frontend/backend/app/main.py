@@ -1,59 +1,42 @@
-import os
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from openai import OpenAI
+from io import BytesIO
+from pathlib import Path
+from uuid import uuid4
+
+from app.tts_pipeline import generate_transcript, mix_with_background, tts_to_wav_bytes
 from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Form
+from fastapi.responses import JSONResponse, StreamingResponse
 
 load_dotenv()
-
 app = FastAPI()
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Add your frontend origin here
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Folder to store generated MP3s
+OUTPUT_DIR = Path("generated_audios")
+OUTPUT_DIR.mkdir(exist_ok=True)
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-class Prompt(BaseModel):
-    prompt: str
+@app.post("/generate-meditation/")
+async def generate_meditation(prompt: str = Form(...)):
+    transcript = generate_transcript(prompt)
+    tts_bytes = await tts_to_wav_bytes(transcript)
+    final_audio = mix_with_background(tts_bytes)
 
-class Transcript(BaseModel):
-    transcript: str
+    uid = uuid4().hex
+    file_path = OUTPUT_DIR / f"{uid}.mp3"
+    with open(file_path, "wb") as f:
+        f.write(final_audio.read())
 
-@app.post("/api/generate-transcript")
-def generate_transcript(prompt: Prompt):
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a meditation guide. Generate a 2-minute meditation script based on the user's prompt.",
-                },
-                {"role": "user", "content": prompt.prompt},
-            ],
-        )
-        return {"transcript": response.choices[0].message.content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return JSONResponse({"transcript": transcript, "audioUrl": f"/download/{uid}.mp3"})
 
-@app.post("/api/generate-audio")
-def generate_audio(transcript: Transcript):
-    try:
-        # response = client.audio.speech.create(
-        #     model="tts-1",
-        #     voice="shimmer",
-        #     input=transcript.transcript,
-        # )
-        # In a real application, you would save the audio file and return a URL.
-        # For now, we'll just return a placeholder.
-        return {"audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/download/{filename}")
+async def download_audio(filename: str):
+    file_path = OUTPUT_DIR / filename
+    if not file_path.exists():
+        return JSONResponse({"error": "File not found"}, status_code=404)
+
+    return StreamingResponse(
+        open(file_path, "rb"),
+        media_type="audio/mpeg",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

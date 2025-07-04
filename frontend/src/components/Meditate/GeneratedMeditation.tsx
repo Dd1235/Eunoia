@@ -36,19 +36,29 @@ const GeneratedMeditation = () => {
     return () => audio.removeEventListener('timeupdate', update);
   }, []);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsLoading(true);
     setIsPlaying(false);
     setTranscript('');
     setAudioUrl('');
 
-    // Simulate loading + generation delay
-    setTimeout(() => {
-      const dummyTranscript = 'Take a moment to relax and breathe. Let go of your thoughts.';
-      setTranscript(dummyTranscript);
-      setAudioUrl('/src/assets/Mello_Focus.mp3'); // Replace with your placeholder file
+    const formData = new FormData();
+    formData.append('prompt', prompt);
+
+    try {
+      const res = await fetch('http://localhost:8000/generate-meditation/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      setTranscript(data.transcript);
+      setAudioUrl(`http://localhost:8000${data.audioUrl}`); // full URL e.g. /download/abc123.mp3
+    } catch (err) {
+      console.error('Error generating meditation:', err);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const togglePlay = () => {
