@@ -10,6 +10,8 @@ import About from './pages/About';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import UserProfile from './pages/UserProfile';
+import MeditateWithAI from 'pages/MeditateWithAI';
+import Player from './components/Audio/Player';
 
 const App: FC = () => (
   <>
@@ -44,6 +46,9 @@ const App: FC = () => (
           </ProtectedRoute>
         }
       />
+      <Route path='/meditate' element={<MeditateWithAI />} />
+      <Route path='/test/audio' element={<Player />} />
+
       <Route path='*' element={<Home />} />
     </Routes>
   </>

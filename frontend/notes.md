@@ -137,3 +137,13 @@ create index if not exists sleep_logs_uid_date
 create index if not exists mood_logs_uid_at
   on mood_logs (user_id, at);
 $$
+
+_Begin by finding a comfortable position. You can sit in a chair with your feet flat on the ground, or if you prefer, you may lie down. Allow your body to settle, and gently close your eyes if you feel comfortable doing so._
+
+_Take a deep breath in, filling your lungs completely… and exhale slowly, releasing any tension. Let’s do this a few more times. Inhale deeply through your nose… hold it for a moment… now exhale gently through your mouth, letting go of anything that no longer serves you. As you continue to breathe slowly, notice the rise and fall of your chest._
+
+_Now, shift your focus to your body. Starting at the top of your head, feel a warm wave of relaxation flowing down. Allow this comforting sensation to move down your forehead, relaxing your brow… releasing any tightness in your jaw. Let your shoulders drop, feeling lighter with each exhale._
+
+_Feel this warm wave continue down your arms, through your elbows, to your fingertips. Notice the sensation as your fingers relax and prepare to let go of the day._
+
+\*As you breathe in, invite peace into your heart. And as you breathe out, imagine releasing any stresses or worries, watching them float

@@ -20,6 +20,7 @@ const pages = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Logs', href: '/logs' },
   { name: 'About', href: '/about' },
+  { name: 'Meditate', href: '/meditate' },
 ];
 
 export const Header: FC = () => {
