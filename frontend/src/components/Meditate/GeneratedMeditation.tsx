@@ -4,7 +4,7 @@ import { Card, CardContent } from '../ui/card';
 import { Textarea } from '../ui/textarea';
 import { PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { Loader2 } from 'lucide-react'; // Optional loading icon
+import { Loader2 } from 'lucide-react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 
 const GeneratedMeditation = () => {
@@ -14,33 +14,58 @@ const GeneratedMeditation = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // default: muted
+  const [isMuted, setIsMuted] = useState(true);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Update mute toggle
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.muted = isMuted;
     }
   }, [isMuted]);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
+  // Track playback progress
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const update = () => {
-      setProgress((audio.currentTime / audio.duration) * 100);
+      if (!isNaN(audio.duration) && audio.duration > 0) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
     };
 
     audio.addEventListener('timeupdate', update);
     return () => audio.removeEventListener('timeupdate', update);
   }, []);
 
-  const handleGenerate = async () => {
-    setIsLoading(true);
+  // Reset state when new audio is set
+  useEffect(() => {
+    if (!audioRef.current) return;
+    const audio = audioRef.current;
+
+    setProgress(0);
     setIsPlaying(false);
+
+    const handleEnded = () => setIsPlaying(false);
+    audio.addEventListener('ended', handleEnded);
+    return () => audio.removeEventListener('ended', handleEnded);
+  }, [audioUrl]);
+
+  // Main handler
+  const handleGenerate = async () => {
+    console.log('[generate] called with prompt:', prompt);
+    if (!prompt.trim()) {
+      alert('Please enter a prompt!');
+      return;
+    }
+
+    setIsLoading(true);
     setTranscript('');
     setAudioUrl('');
+    setProgress(0);
+    setIsPlaying(false);
 
     const formData = new FormData();
     formData.append('prompt', prompt);
@@ -51,11 +76,26 @@ const GeneratedMeditation = () => {
         body: formData,
       });
 
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+
       const data = await res.json();
+      console.log('[generate] response:', data);
+
       setTranscript(data.transcript);
-      setAudioUrl(`http://localhost:8000${data.audioUrl}`); // full URL e.g. /download/abc123.mp3
+      const fullUrl = `http://localhost:8000${data.audioUrl}`;
+      setAudioUrl(fullUrl);
+
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.play().catch(console.error);
+          setIsPlaying(true);
+        }
+      }, 500);
     } catch (err) {
-      console.error('Error generating meditation:', err);
+      console.error('Error during generation:', err);
+      alert('Failed to generate meditation. See console for details.');
     } finally {
       setIsLoading(false);
     }
@@ -64,15 +104,18 @@ const GeneratedMeditation = () => {
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
+
     if (isPlaying) {
       audio.pause();
     } else {
       audio.play().catch(console.error);
     }
+
     setIsPlaying(!isPlaying);
   };
 
   const handleDownload = () => {
+    if (!audioUrl) return;
     const a = document.createElement('a');
     a.href = audioUrl;
     a.download = 'meditation.mp3';
@@ -82,7 +125,7 @@ const GeneratedMeditation = () => {
   return (
     <div className='space-y-6'>
       <Textarea placeholder='Enter a meditation prompt...' value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-      <Button onClick={handleGenerate} disabled={isLoading} className='w-full'>
+      <Button onClick={handleGenerate} disabled={isLoading || !prompt.trim()} className='w-full'>
         {isLoading ? (
           <>
             <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Generating...
@@ -121,7 +164,7 @@ const GeneratedMeditation = () => {
         <Card>
           <CardContent className='p-4'>
             <h2 className='mb-2 text-xl font-semibold'>Transcript</h2>
-            <p className='text-gray-700 dark:text-gray-300'>{transcript}</p>
+            <p className='whitespace-pre-line text-gray-700 dark:text-gray-300'>{transcript}</p>
           </CardContent>
         </Card>
       )}
