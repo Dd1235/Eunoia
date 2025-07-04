@@ -17,6 +17,7 @@ const GeneratedMeditation = () => {
   const [isMuted, setIsMuted] = useState(true);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const handleEnded = () => setIsPlaying(false);
 
   // Update mute toggle
   useEffect(() => {
@@ -85,7 +86,7 @@ const GeneratedMeditation = () => {
 
       setTranscript(data.transcript);
       const fullUrl = `http://localhost:8000${data.audioUrl}`;
-      setAudioUrl(fullUrl);
+      // setAudioUrl(fullUrl); commenting out to get rid of auto play
 
       setTimeout(() => {
         if (audioRef.current) {
@@ -99,6 +100,14 @@ const GeneratedMeditation = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleReplay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(console.error);
+    setIsPlaying(true);
   };
 
   const togglePlay = () => {

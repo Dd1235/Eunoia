@@ -1,3 +1,5 @@
 .env
 .env.local
 key.md
+__pycache__
+.vscode
