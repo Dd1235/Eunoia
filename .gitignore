@@ -2,4 +2,5 @@
 .env.local
 key.md
 __pycache__
-.vscode
+.vscode/
+.cursor/

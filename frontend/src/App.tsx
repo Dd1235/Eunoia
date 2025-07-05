@@ -12,9 +12,10 @@ import Signup from './pages/Signup';
 import UserProfile from './pages/UserProfile';
 import MeditateWithAI from 'pages/MeditateWithAI';
 import Player from './components/Audio/Player';
+import { ChatSessionProvider } from './context/ChatSessionContext';
 
 const App: FC = () => (
-  <>
+  <ChatSessionProvider>
     <Header />
 
     <Routes>
@@ -46,12 +47,19 @@ const App: FC = () => (
           </ProtectedRoute>
         }
       />
-      <Route path='/meditate' element={<MeditateWithAI />} />
+      <Route
+        path='/meditate'
+        element={
+          <ProtectedRoute>
+            <MeditateWithAI />
+          </ProtectedRoute>
+        }
+      />
       <Route path='/test/audio' element={<Player />} />
 
       <Route path='*' element={<Home />} />
     </Routes>
-  </>
+  </ChatSessionProvider>
 );
 
 export default App;
