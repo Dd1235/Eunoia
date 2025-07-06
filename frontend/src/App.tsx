@@ -14,6 +14,7 @@ import MeditateWithAI from 'pages/MeditateWithAI';
 import Player from './components/Audio/Player';
 import { ChatSessionProvider } from './context/ChatSessionContext';
 import TodoList from 'pages/TodoList';
+import BubbleCanvas from 'pages/BubbleCanvas';
 
 const App: FC = () => (
   <ChatSessionProvider>
@@ -66,6 +67,7 @@ const App: FC = () => (
         }
       />
       <Route path='/test/audio' element={<Player />} />
+      <Route path='/bubbles' element={<BubbleCanvas />} />
 
       <Route path='*' element={<Home />} />
     </Routes>
