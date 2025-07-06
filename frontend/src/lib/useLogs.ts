@@ -1,3 +1,5 @@
+// filename: frontend/src/lib/useLogs.ts
+
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 

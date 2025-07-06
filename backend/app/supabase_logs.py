@@ -8,6 +8,8 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
+print("Loaded SUPABASE_SERVICE_KEY:", SUPABASE_SERVICE_KEY[:6], "...")
+
 
 def fetch_logs(user_id: str) -> Dict:
     # only last two weeks
