@@ -16,21 +16,22 @@ type TodoElementProps = {
 const TodoElement = ({ todo, onToggle, onDelete }: TodoElementProps) => {
   return (
     <li className='flex items-center justify-between gap-4 rounded-md border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-900'>
-      <label className='flex flex-1 cursor-pointer items-center gap-3'>
+      <label className='flex flex-1 items-start gap-3'>
         <input
           type='checkbox'
           checked={todo.done}
           onChange={onToggle}
-          className='h-5 w-5 appearance-none rounded-sm border border-gray-400 bg-white transition-colors checked:border-black checked:bg-black dark:border-gray-500 dark:bg-gray-800 dark:checked:border-white dark:checked:bg-white'
+          className='mt-1 h-5 w-5 shrink-0 appearance-none rounded-sm border border-gray-400 bg-white transition-colors checked:border-black checked:bg-black dark:border-gray-500 dark:bg-gray-800 dark:checked:border-white dark:checked:bg-white'
         />
         <span
-          className={`break-words text-sm ${
+          className={`break-words text-sm leading-snug ${
             todo.done ? 'text-gray-400 line-through dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'
           }`}
         >
           {todo.content}
         </span>
       </label>
+
       <button
         onClick={onDelete}
         className='text-sm text-red-500 transition-colors hover:text-red-700 dark:hover:text-red-400'
