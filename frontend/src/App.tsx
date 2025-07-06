@@ -67,9 +67,7 @@ const App: FC = () => (
         }
       />
       <Route path='/test/audio' element={<Player />} />
-      <Route path='/bubbles' element={<BubbleCanvas />} />
-
-      <Route path='*' element={<Home />} />
+      <Route path='/*' element={<BubbleCanvas />} />
     </Routes>
   </ChatSessionProvider>
 );
