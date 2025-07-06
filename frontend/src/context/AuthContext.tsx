@@ -1,3 +1,4 @@
+// src/context/AuthContext.tsx
 import type { FC, ReactNode } from 'react';
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';

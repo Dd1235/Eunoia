@@ -1,0 +1,26 @@
+July-6th
+
+curl -X POST http://localhost:8000/chat/session \
+  -H "Authorization: Bearer user123" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "user123"}'
+
+{"session_id":"95d1e5b6-e303-490c-8799-7fa5a2c3273e"}%     
+
+curl -X POST http://localhost:8000/chat/message \
+  -H "Authorization: Bearer user123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "95d1e5b6-e303-490c-8799-7fa5a2c3273e",
+    "user_id": "user123",
+    "message": "how was my sleep yesterday?"
+}'
+
+curl -X POST http://localhost:8000/chat/message \
+  -H "Authorization: Bearer user123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "95d1e5b6-e303-490c-8799-7fa5a2c3273e",
+    "user_id": "user123",
+    "message": "i am continuing the conversation"
+}'
