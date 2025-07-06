@@ -13,12 +13,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from typing_extensions import Literal
+
+load_dotenv()
 
 from .agent_logic import get_intro_reply
+from .ai.router import chat_router
 from .memory_store import create_session, get_session
 
 app = FastAPI()
-load_dotenv()
 
 from .supabase_logs import fetch_logs
 
@@ -105,10 +108,11 @@ class StartSessionResponse(BaseModel):
     session_id: str
 
 
-class ChatMessageRequest(BaseModel):
+class ChatRequest(BaseModel):
     session_id: str
     user_id: str
     message: str
+    model: Literal["openai", "gemini"] = "openai"
 
 
 class ChatMessageResponse(BaseModel):
@@ -167,22 +171,37 @@ async def start_chat_session(
 
 
 # Chat message
-@app.post("/chat/message", response_model=ChatMessageResponse)
-async def chat_message(
-    req: ChatMessageRequest, user_id: str = Depends(verify_user_fake)
-):
-    if req.user_id != user_id:
-        raise HTTPException(status_code=403, detail="User mismatch")
+# @app.post("/chat/message", response_model=ChatMessageResponse)
+# async def chat_message(
+#     req: ChatMessageRequest, user_id: str = Depends(verify_user_fake)
+# ):
+#     if req.user_id != user_id:
+#         raise HTTPException(status_code=403, detail="User mismatch")
 
-    session = get_session(user_id, req.session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+#     session = get_session(user_id, req.session_id)
+#     if not session:
+#         raise HTTPException(status_code=404, detail="Session not found")
 
-    session["history"].append({"role": "user", "content": req.message})
-    reply = f"(Agent): Based on your logs, you asked: {req.message}"
-    session["history"].append({"role": "agent", "content": reply})
+#     session["history"].append({"role": "user", "content": req.message})
+#     reply = f"(Agent): Based on your logs, you asked: {req.message}"
+#     session["history"].append({"role": "agent", "content": reply})
 
-    return {"reply": reply, "history": session["history"]}
+#     return {"reply": reply, "history": session["history"]}
+
+
+@app.post("/chat/message")
+def chat_with_agent(payload: ChatRequest):
+    logs = fetch_logs(payload.user_id)
+
+    response = chat_router(
+        model_name=payload.model,  # "openai" or "gemini"
+        study_logs=logs["study"],
+        sleep_logs=logs["sleep"],
+        mood_logs=logs["mood"],
+        user_message=payload.message,
+    )
+
+    return {"response": response}
 
 
 @app.get("/debug/logs")
