@@ -1,20 +1,14 @@
-# backend/app/supabase_logs.py
-
-import os
 from datetime import datetime, timedelta
 from typing import Dict
 
+from app.core.config import settings
 from supabase import Client, create_client
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-
-print("Loaded SUPABASE_SERVICE_KEY:", SUPABASE_SERVICE_KEY[:6], "...")
+supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
 
 
 def fetch_logs(user_id: str) -> Dict:
-    # only last two weeks
+    """Return study/sleep/mood logs for the last 15 days."""
     since = (datetime.utcnow() - timedelta(days=15)).isoformat()
 
     study = (
@@ -45,8 +39,4 @@ def fetch_logs(user_id: str) -> Dict:
         .data
     )
 
-    return {
-        "study": study or [],
-        "sleep": sleep or [],
-        "mood": mood or [],
-    }
+    return {"study": study or [], "sleep": sleep or [], "mood": mood or []}
