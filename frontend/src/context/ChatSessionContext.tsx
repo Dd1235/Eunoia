@@ -9,7 +9,8 @@ const defaultLogsConfig: LogsConfig = { study: true, sleep: true, mood: true };
 
 const ChatSessionContext = createContext<
   | {
-      sessionId: string;
+      sessionId: string | null;
+      setSessionId: React.Dispatch<React.SetStateAction<string | null>>;
       history: Message[];
       setHistory: React.Dispatch<React.SetStateAction<Message[]>>;
       logsConfig: LogsConfig;
@@ -19,14 +20,15 @@ const ChatSessionContext = createContext<
 >(undefined);
 
 export const ChatSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const sessionIdRef = useRef(uuidv4());
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [history, setHistory] = useState<Message[]>([]);
   const [logsConfig, setLogsConfig] = useState<LogsConfig>(defaultLogsConfig);
 
   return (
     <ChatSessionContext.Provider
       value={{
-        sessionId: sessionIdRef.current,
+        sessionId,
+        setSessionId,
         history,
         setHistory,
         logsConfig,

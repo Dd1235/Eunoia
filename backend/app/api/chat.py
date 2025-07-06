@@ -35,5 +35,5 @@ def send_message(payload: ChatRequest, uid: str = Depends(get_current_user)):
 
     SessionStore.append(uid, payload.session_id, "user", payload.message)
     reply = run_agent(payload.model, sess["logs"], sess["history"], payload.message)
-    SessionStore.append(uid, payload.session_id, "agent", reply)
+    SessionStore.append(uid, payload.session_id, "assistant", reply)
     return {"reply": reply, "history": sess["history"]}

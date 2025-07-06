@@ -3,7 +3,6 @@ from app.services.agents.base import format_logs_input
 from openai import OpenAI
 
 client = OpenAI()
-# client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
 def chat_with_openai(study, sleep, mood, user_msg: str, history: list) -> str:
@@ -14,4 +13,5 @@ def chat_with_openai(study, sleep, mood, user_msg: str, history: list) -> str:
         {"role": "user", "content": prompt},
     ]
     resp = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
-    return resp.choices[0].message.content.strip()
+    content = resp.choices[0].message.content
+    return content.strip() if content else "Sorry, no reply was generated."

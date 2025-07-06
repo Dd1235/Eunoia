@@ -7,6 +7,13 @@ import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { Loader2 } from 'lucide-react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 
+const formatTime = (secs: number) => {
+  if (isNaN(secs)) return '0:00';
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 const GeneratedMeditation = () => {
   const [prompt, setPrompt] = useState('');
   const [transcript, setTranscript] = useState('');
@@ -15,6 +22,7 @@ const GeneratedMeditation = () => {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [duration, setDuration] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleEnded = () => setIsPlaying(false);
@@ -26,7 +34,7 @@ const GeneratedMeditation = () => {
     }
   }, [isMuted]);
 
-  // Track playback progress
+  // Track playback progress and duration
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -34,11 +42,16 @@ const GeneratedMeditation = () => {
     const update = () => {
       if (!isNaN(audio.duration) && audio.duration > 0) {
         setProgress((audio.currentTime / audio.duration) * 100);
+        setDuration(audio.duration);
       }
     };
 
     audio.addEventListener('timeupdate', update);
-    return () => audio.removeEventListener('timeupdate', update);
+    audio.addEventListener('loadedmetadata', update);
+    return () => {
+      audio.removeEventListener('timeupdate', update);
+      audio.removeEventListener('loadedmetadata', update);
+    };
   }, []);
 
   // Reset state when new audio is set
@@ -72,7 +85,7 @@ const GeneratedMeditation = () => {
     formData.append('prompt', prompt);
 
     try {
-      const res = await fetch('http://localhost:8000/generate-meditation/', {
+      const res = await fetch('http://localhost:8000/meditate/', {
         method: 'POST',
         body: formData,
       });
@@ -86,7 +99,7 @@ const GeneratedMeditation = () => {
 
       setTranscript(data.transcript);
       const fullUrl = `http://localhost:8000${data.audioUrl}`;
-      // setAudioUrl(fullUrl); commenting out to get rid of auto play
+      setAudioUrl(fullUrl);
 
       setTimeout(() => {
         if (audioRef.current) {
@@ -131,6 +144,17 @@ const GeneratedMeditation = () => {
     a.click();
   };
 
+  // Seek handler
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+    const rect = (e.target as HTMLDivElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = x / rect.width;
+    audio.currentTime = percent * duration;
+    setProgress(percent * 100);
+  };
+
   return (
     <div className='space-y-6'>
       <Textarea placeholder='Enter a meditation prompt...' value={prompt} onChange={(e) => setPrompt(e.target.value)} />
@@ -147,8 +171,16 @@ const GeneratedMeditation = () => {
       {audioUrl && (
         <Card>
           <CardContent className='space-y-4 p-4'>
-            <div className='relative h-2 rounded-full bg-gray-300 dark:bg-gray-700'>
-              <div className='absolute h-2 rounded-full bg-blue-500' style={{ width: `${progress}%` }} />
+            <div className='flex items-center gap-2'>
+              <span className='text-xs text-gray-500'>{formatTime(audioRef.current?.currentTime || 0)}</span>
+              <div
+                className='relative h-2 flex-1 cursor-pointer rounded-full bg-gray-300 dark:bg-gray-700'
+                onClick={handleSeek}
+                style={{ minWidth: 0 }}
+              >
+                <div className='absolute h-2 rounded-full bg-blue-500' style={{ width: `${progress}%` }} />
+              </div>
+              <span className='text-xs text-gray-500'>{formatTime(duration)}</span>
             </div>
             <div className='flex justify-center gap-4'>
               <Button onClick={togglePlay} size='icon'>
