@@ -13,6 +13,7 @@ import UserProfile from './pages/UserProfile';
 import MeditateWithAI from 'pages/MeditateWithAI';
 import Player from './components/Audio/Player';
 import { ChatSessionProvider } from './context/ChatSessionContext';
+import TodoList from 'pages/TodoList';
 
 const App: FC = () => (
   <ChatSessionProvider>
@@ -39,6 +40,7 @@ const App: FC = () => (
       <Route path='/about' element={<About />} />
       <Route path='/login' element={<Login />} />
       <Route path='/signup' element={<Signup />} />
+      <Route path='/todo' element={<TodoList />} />
       <Route
         path='/user'
         element={
