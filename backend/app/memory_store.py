@@ -1,3 +1,5 @@
+# backend/app/memory_store.py
+
 from typing import Dict, List
 
 chat_sessions: Dict[str, Dict[str, any]] = {}  # user_id -> session_id -> data

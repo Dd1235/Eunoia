@@ -1,3 +1,5 @@
+# backend/app/supabase_logs.py
+
 import os
 from datetime import datetime, timedelta
 from typing import Dict
