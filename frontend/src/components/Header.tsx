@@ -22,7 +22,6 @@ const pages = [
   { name: 'About', href: '/about' },
   { name: 'Meditate', href: '/meditate' },
   { name: 'Todos', href: '/todo' },
-  { name: 'User', href: '/user' },
 ];
 
 export const Header: FC = () => {

@@ -40,7 +40,15 @@ const App: FC = () => (
       <Route path='/about' element={<About />} />
       <Route path='/login' element={<Login />} />
       <Route path='/signup' element={<Signup />} />
-      <Route path='/todo' element={<TodoList />} />
+      <Route
+        path='/todo'
+        element={
+          <ProtectedRoute>
+            <TodoList />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path='/user'
         element={

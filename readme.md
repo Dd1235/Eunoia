@@ -11,3 +11,7 @@ Could've used cloud firestore, bonus google points, but I wanted to use a relati
 
 Using react query, need to learn it better.
 Was using useEffects and the typical flow for Edureach
+
+I LOVE SUPABASE!!!
+
+OAuth login signup in two lines of code!!
