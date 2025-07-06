@@ -8,8 +8,8 @@ def get_current_user(authorization: str | None = Header(None)) -> str:
     Dev mode: if DEV_FAKE_UID is present, always return it.
     Prod: require and verify Supabase JWT.
     """
-    if settings.DEV_FAKE_UID:
-        return settings.DEV_FAKE_UID
+    # if settings.DEV_FAKE_UID:
+    #     return settings.DEV_FAKE_UID
 
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Missing or invalid Authorization header")
