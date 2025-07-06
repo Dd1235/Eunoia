@@ -61,9 +61,9 @@ export const Header: FC = () => {
             <button
               type='button'
               onClick={() => navigate('/')}
-              className='text-2xl font-bold text-black focus:outline-none dark:text-white'
+              className='font-eunoia text-3xl font-semibold tracking-tight text-black focus:outline-none dark:text-white'
             >
-              &micro;
+              &lambda;
             </button>
 
             {/* Mobile Hamburger */}

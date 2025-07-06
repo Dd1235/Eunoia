@@ -43,7 +43,7 @@ const PresetPlayer = () => {
   };
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-4 pb-10'>
       <div className='text-center text-lg font-medium'>{tracks[trackIndex].label}</div>
 
       <div className='flex justify-center gap-4'>
