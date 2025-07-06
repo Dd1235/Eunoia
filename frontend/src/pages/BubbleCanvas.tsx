@@ -1,3 +1,8 @@
+/* -----------------------------------------------------------------------
+   BubbleCanvas.tsx
+   Realistic soap-bubble layer (HTML5 Canvas) for React + Vite + Tailwind
+------------------------------------------------------------------------ */
+
 import React, { useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 
 /* ─────────── configurable constants ─────────── */
@@ -5,13 +10,13 @@ const MAX_BUBBLES = 30;
 const SPAWN_INTERVAL_MS = 800;
 const BASE_RADIUS = 22;
 const RADIUS_JITTER = 14;
-const RISE_MIN_SPEED = 30;
-const RISE_MAX_SPEED = 80;
+const RISE_MIN_SPEED = 120; // Increased from 30
+const RISE_MAX_SPEED = 240; // Increased from 80
 const H_DRIFT = 25;
-const WOBBLE_FREQ = 2; // cycles per second
+const WOBBLE_FREQ = 2;
 const POP_DURATION_MS = 250;
 
-const POP_SOUND_URL = '../assets/bubble_pop.mp3'; // put file in /public/audio/
+const POP_SOUND_URL = '../assets/bubble_pop.mp3';
 
 /* ─────────── types ─────────── */
 interface Bubble {
@@ -43,14 +48,14 @@ const BubbleCanvas: React.FC = () => {
     (audioRef.current.cloneNode() as HTMLAudioElement).play().catch(() => {});
   }, []);
 
-  /* spawn a bubble */
+  /* spawn a bubble - FIXED: spawn position calculation */
   const spawnBubble = (w: number, h: number) => {
     const r = BASE_RADIUS + (Math.random() - 0.5) * 2 * RADIUS_JITTER;
     bubblesRef.current.push({
       id: nextId(),
       x: Math.random() * w,
       baseX: Math.random() * w,
-      y: h + r + Math.random() * h * 0.2,
+      y: h + r, // Start just below canvas
       radius: r,
       riseSpeed: RISE_MIN_SPEED + Math.random() * (RISE_MAX_SPEED - RISE_MIN_SPEED),
       bornAt: performance.now(),
@@ -63,9 +68,9 @@ const BubbleCanvas: React.FC = () => {
     ctx.clearRect(0, 0, w, h);
 
     bubblesRef.current.forEach((b) => {
-      // update position
-      b.y -= b.riseSpeed / 60;
+      // Update position using time-based movement
       const dt = (now - b.bornAt) / 1000;
+      b.y = h + b.radius - b.riseSpeed * dt; // Time-based position
       b.x = b.baseX + Math.sin((dt + b.id) * WOBBLE_FREQ * 2 * Math.PI) * H_DRIFT;
 
       // popping animation
@@ -75,15 +80,15 @@ const BubbleCanvas: React.FC = () => {
         const p = Math.min((now - b.popStart) / POP_DURATION_MS, 1);
         r *= 1 - p;
         alpha *= 1 - p;
-        if (p >= 1) b.radius = 0; // mark for removal
+        if (p >= 1) b.radius = 0;
       }
 
       // draw bubble
       if (r > 0.5) {
         const grd = ctx.createRadialGradient(b.x - r * 0.4, b.y - r * 0.4, r * 0.1, b.x, b.y, r);
-        grd.addColorStop(0, `rgba(0,0,0,${0.7 * alpha})`);
-        grd.addColorStop(0.4, `rgba(0,0,0,${0.25 * alpha})`);
-        grd.addColorStop(1, `rgba(180,180,0,${0.1 * alpha})`);
+        grd.addColorStop(0, `rgba(255,255,255,${0.7 * alpha})`);
+        grd.addColorStop(0.4, `rgba(255,255,255,${0.25 * alpha})`);
+        grd.addColorStop(1, `rgba(180,180,255,${0.1 * alpha})`);
         ctx.fillStyle = grd;
 
         ctx.beginPath();
@@ -125,13 +130,13 @@ const BubbleCanvas: React.FC = () => {
     canvas.height = window.innerHeight * devicePixelRatio;
   }, []);
 
-  /* mount & animation loop — useLayoutEffect guarantees ref is set */
+  /* mount & animation loop */
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return; // should never fire, but safe-guard
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return; // very old browsers only
+    if (!ctx) return;
 
     resize(canvas);
 
@@ -147,20 +152,25 @@ const BubbleCanvas: React.FC = () => {
     };
 
     animRef.current = requestAnimationFrame(loop);
-    window.addEventListener('resize', () => resize(canvas));
+    const resizeHandler = () => resize(canvas);
+    window.addEventListener('resize', resizeHandler);
 
     return () => {
       cancelAnimationFrame(animRef.current!);
-      window.removeEventListener('resize', () => resize(canvas));
+      window.removeEventListener('resize', resizeHandler);
     };
   }, [draw, resize]);
 
   /* render */
   return (
-    <>
-      <h1>Pop Bubbles</h1>
-      <canvas ref={canvasRef} className='fixed inset-0 -z-10 touch-none select-none' onClick={handleClick} />
-    </>
+    <div className='relative h-screen w-full overflow-hidden'>
+      <h1 className='absolute z-10 p-4 text-4xl font-bold text-white'>Pop Bubbles</h1>
+      <canvas
+        ref={canvasRef}
+        className='absolute inset-0 bg-gradient-to-b from-sky-500 to-indigo-700'
+        onClick={handleClick}
+      />
+    </div>
   );
 };
 
