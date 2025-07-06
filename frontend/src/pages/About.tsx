@@ -30,10 +30,10 @@ const About = () => (
       <h2>🛠 Tech Stack</h2>
       <ul>
         <li>
-          <b>Frontend:</b> React + TypeScript (Vite + SWC), Tailwind CSS, ShadCN UI, Heroicons
+          <b>Frontend:</b> React + TypeScript, Tailwind CSS, Heroicons
         </li>
         <li>
-          <b>Backend:</b> FastAPI (modular architecture), in-memory session store (Redis planned)
+          <b>Backend:</b> FastAPI, in-memory session store (Redis and Supabase planned)
         </li>
         <li>
           <b>Database:</b> Supabase (PostgreSQL + RLS), Supabase Auth (JWT-based)
@@ -42,7 +42,7 @@ const About = () => (
           <b>AI:</b> OpenAI & Gemini (via backend routing layer with context injection)
         </li>
         <li>
-          <b>Audio:</b> TTS + music pipeline for meditation generation (local files)
+          <b>Audio:</b> TTS(OpenAI) + music pipeline for meditation generation (local files)
         </li>
       </ul>
 
