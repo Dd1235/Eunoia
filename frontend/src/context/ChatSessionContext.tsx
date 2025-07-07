@@ -1,6 +1,5 @@
 // src/context/ChatSessionContext.tsx
-import React, { createContext, useContext, useState, useRef } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState } from 'react';
 
 type Message = { role: 'user' | 'agent'; content: string };
 type LogsConfig = { study: boolean; sleep: boolean; mood: boolean };

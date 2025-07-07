@@ -1,9 +1,13 @@
+// frontend/src/components/StudyTimer/StudyTimer.tsx
+
 import { PlayIcon, PauseIcon, StopIcon } from '@heroicons/react/24/solid';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { Clock } from './Clock';
 import { FinishModal } from './FinishModal';
 import { startSession, updateBreak, endSession } from '../../lib/studySessions';
 import { load, save } from 'lib/persist';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 const clearTimer = () => localStorage.removeItem('focus.timer');
 
 // function formatHms(total: number) {
@@ -78,32 +82,9 @@ export const StudyTimer = () => {
   const [elapsed, setElapsed] = useState(0); // secs
   const [breakElapsed, setBreakElapsed] = useState(0);
   const [showFinish, setShowFinish] = useState(false);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // ── tick timers ─────────────────────────────────────────
-
-  // useEffect(() => {
-  //   if (state.status === 'running') {
-  //     const i = setInterval(() => {
-  //       setElapsed(secondsSince(state.start) - state.breakAcc);
-  //       if (state.status === 'idle') clearTimer();
-  //       else save('focus.timer', state);
-  //     }, 1000);
-  //     return () => clearInterval(i);
-  //   }
-  //   return undefined;
-  // }, [state]);
-
-  // useEffect(() => {
-  //   let id: number;
-  //   if (state.status === 'paused') {
-  //     id = window.setInterval(() => setBreakElapsed(secondsSince(state.breakStart)), 1000);
-  //   } else {
-  //     setBreakElapsed(0);
-  //   }
-  //   return () => clearInterval(id);
-  // }, [state]);
-
-  /* ── 1. tick elapsed time while running ───────────────────────── */
   useEffect(() => {
     if (state.status !== 'running') return; // early exit
 
@@ -166,10 +147,7 @@ export const StudyTimer = () => {
         await endSession(state.id, { productivity: prod, note });
         await updateBreak(state.id, finalBreak);
         // if the user is currently on /logs, refresh list
-        if (window.location.pathname === '/logs') {
-          // quick+  dirty event
-          window.dispatchEvent(new Event('refresh-logs'));
-        }
+        queryClient.invalidateQueries({ queryKey: ['logs', user?.id] });
       }
       dispatch({ type: 'RESET' });
       setElapsed(0);

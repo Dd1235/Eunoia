@@ -10,9 +10,6 @@ const UserProfile = () => {
       content: user ? (
         <ul className='space-y-2'>
           <li>
-            <span className='font-medium'>UID:</span> {user.id}
-          </li>
-          <li>
             <span className='font-medium'>Email:</span> {user.email}
           </li>
         </ul>

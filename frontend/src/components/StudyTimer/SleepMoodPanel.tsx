@@ -7,9 +7,11 @@ import { insertSleep, insertMood } from '../../lib/studySleepMood';
 import { useState, useEffect } from 'react';
 
 import { load, save } from 'lib/persist';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const SleepMoodPanel = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [sleepScore, setSleepScore] = useState<number | null>(load('focus.sleepScore', null));
   const [sleepNote, setSleepNote] = useState(load('focus.sleepNote', ''));
@@ -26,6 +28,9 @@ export const SleepMoodPanel = () => {
     // eslint-disable-next-line no-console
 
     await insertSleep(sleepScore!, sleepNote);
+
+    queryClient.invalidateQueries({ queryKey: ['logs', user?.id] });
+
     setSleepScore(null);
     setSleepNote('');
     save('focus.sleepScore', null);
@@ -35,6 +40,7 @@ export const SleepMoodPanel = () => {
   const handleMoodSave = async () => {
     // eslint-disable-next-line no-console
     await insertMood(moodScore!, moodNote);
+    queryClient.invalidateQueries({ queryKey: ['logs', user?.id] });
     setMoodScore(null);
     setMoodNote('');
     save('focus.moodScore', null);

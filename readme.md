@@ -123,3 +123,87 @@ onError: revert the cache to the previous state if the mutation fails.
 onSuccess: Ensure the cache reflects the final state after a successful mutation.
 
 Overall learning: Keep priorities dense only when needed (lazy re-balance during reorder), pass pure JSONB not double-stringified data, guard pointer events when mixing DnD with clicks, ensure every write happens inside a single SQL transaction (stored procedure) to satisfy the unique constraint at all intermediate steps, and always add an optimistic UI layer for a snappy experience.
+
+Here’s the full log in plain text, ready to paste into your `README.md` or documentation file:
+
+---
+
+Log: React Hook Order Violation in `/logs` Page
+
+Problem:
+React threw the following error on the `/logs` page:
+
+```
+Error: Rendered more hooks than during the previous render.
+Warning: React has detected a change in the order of Hooks called by Logs.
+```
+
+Problem Code:
+
+```tsx
+if (!user) return <p>Log in</p>;
+const { data: logs, isLoading } = useLogs(); // Hook conditionally skipped
+```
+
+Root Cause:
+In React, all hooks (like `useState`, `useEffect`, `useQuery`, etc.) must be called in the **same order on every render**. If a hook is conditionally skipped—such as after an early `return`—React will detect the mismatch and throw an error.
+
+In this case, we also had a utility `useRestoreSession()` function containing a `useEffect()` that was called **after** checking for the user. This meant the hook inside `useRestoreSession()` was not run consistently, causing the hook order to differ between renders.
+
+---
+
+Solution:
+
+1.  Move all hook calls—including `useLogs()` and `useRestoreSession()`—**above any conditional `return`** statements.
+2.  Rewrote `useLogs()` using [TanStack Query](https://tanstack.com/query/latest) to handle fetching, caching, and invalidation automatically.
+3.  Eliminated the old sessionStorage-based log state.
+
+---
+
+New `useLogs()` (using TanStack Query):
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/context/AuthContext";
+
+export const useLogs = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["logs", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 15);
+
+      const [study, sleep, mood] = await Promise.all([
+        supabase
+          .from("study_sessions")
+          .select("*")
+          .gte("started_at", since.toISOString())
+          .order("started_at", { ascending: false }),
+        supabase
+          .from("sleep_logs")
+          .select("*")
+          .gte("date", since.toISOString().slice(0, 10))
+          .order("date", { ascending: false }),
+        supabase
+          .from("mood_logs")
+          .select("*")
+          .gte("at", since.toISOString())
+          .order("at", { ascending: false }),
+      ]);
+
+      return {
+        study: study.data ?? [],
+        sleep: sleep.data ?? [],
+        mood: (mood.data ?? []).map((m) => ({
+          ...m,
+          formatted: new Date(m.at).toLocaleString(),
+        })),
+      };
+    },
+  });
+};
+```
