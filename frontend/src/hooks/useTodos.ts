@@ -100,16 +100,44 @@ export const useTodos = () => {
   });
 
   /* ── Toggle done ───────────────────────────────────────── */
-  const toggleTodo = useMutation({
-    mutationFn: async (todo: Todo) => {
-      const { error } = await supabase
-        .from('todos')
-        .update({ done: !todo.done })
-        .eq('id', todo.id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
-  });
+  /* ── Toggle done ───────────────────────────────────────── */
+const toggleTodo = useMutation({
+  mutationFn: async (todo: Todo) => {
+    const { data, error } = await supabase
+      .from('todos')
+      .update({ done: !todo.done })
+      .eq('id', todo.id)
+      .select()
+      .single();                         // return the updated row
+    if (error) throw error;
+    return data as Todo;
+  },
+
+  /* ① optimistic flip */
+  onMutate: async (todo) => {
+    await queryClient.cancelQueries({ queryKey: ['todos', user?.id] });
+    const prev = queryClient.getQueryData<Todo[]>(['todos', user?.id]) ?? [];
+
+    queryClient.setQueryData(['todos', user?.id], prev.map((t) =>
+      t.id === todo.id ? { ...t, done: !t.done } : t,
+    ));
+
+    return { prev };
+  },
+
+  /* ② rollback on error */
+  onError: (_e, _v, ctx) => {
+    if (ctx?.prev) queryClient.setQueryData(['todos', user?.id], ctx.prev);
+  },
+
+  /* ③ finalise with server copy (keeps created_at etc. accurate) */
+  onSuccess: (serverRow) => {
+    queryClient.setQueryData<Todo[]>(['todos', user?.id], (old = []) =>
+      old.map((t) => (t.id === serverRow.id ? serverRow : t)),
+    );
+  },
+});
+
 
   /* ── Delete single ─────────────────────────────────────── */
   const deleteTodo = useMutation({

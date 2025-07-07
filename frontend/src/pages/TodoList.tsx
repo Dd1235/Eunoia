@@ -37,8 +37,10 @@ const TodoElement = ({
         type='checkbox'
         checked={todo.done}
         onChange={onToggle}
+        onPointerDown={(e) => e.stopPropagation()} // prevent drag
         className='mt-1 h-5 w-5 shrink-0 appearance-none rounded-sm border border-gray-400 bg-white transition-colors checked:border-black checked:bg-black dark:border-gray-500 dark:bg-gray-800 dark:checked:border-white dark:checked:bg-white'
       />
+
       <span
         className={`break-words text-sm leading-snug ${
           todo.done ? 'text-gray-400 line-through dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'
