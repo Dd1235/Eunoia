@@ -6,6 +6,8 @@ import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 const tracks = [
   { label: 'Flowing Focus', src: '/src/assets/Flowing_Focus.mp3' },
   { label: 'Mellow Focus', src: '/src/assets/Mellow_Focus.mp3' },
+  { label: 'Rain', src: '/src/assets/rain.mp3' },
+  { label: 'Ocean', src: '/src/assets/ocean.mp3' },
 ];
 
 const PresetPlayer = () => {
