@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Container } from '@components/Layout/Container';
 import { useTodos } from '@/hooks/useTodos';
 import { TrashIcon } from '@heroicons/react/24/outline';
@@ -11,12 +14,26 @@ type TodoElementProps = {
   };
   onToggle: () => void;
   onDelete: () => void;
+  listeners: any;
+  attributes: any;
+  transform: any;
+  transition: string | undefined;
 };
 
-const TodoElement = ({ todo, onToggle, onDelete }: TodoElementProps) => {
+const TodoElement = ({ todo, onToggle, onDelete, listeners, attributes, transform, transition }: TodoElementProps) => {
   return (
-    <li className='flex items-center justify-between gap-4 rounded-md border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-900'>
+    <li
+      {...attributes}
+      {...listeners}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className='flex items-center justify-between gap-4 rounded-md border border-gray-200 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-900'
+    >
       <label className='flex flex-1 items-start gap-3'>
+        <span className='mt-1 cursor-grab text-gray-400 dark:text-gray-500'>⋮⋮</span>
+
         <input
           type='checkbox'
           checked={todo.done}
@@ -42,9 +59,30 @@ const TodoElement = ({ todo, onToggle, onDelete }: TodoElementProps) => {
   );
 };
 
+const SortableTodo = ({ todo, ...props }: any) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: todo.id,
+  });
+
+  return (
+    <div ref={setNodeRef}>
+      <TodoElement
+        {...props}
+        todo={todo}
+        attributes={attributes}
+        listeners={listeners}
+        transform={transform}
+        transition={transition}
+      />
+    </div>
+  );
+};
+
 const TodoList = () => {
   const [newTodo, setNewTodo] = useState('');
-  const { todos, isLoading, addTodo, toggleTodo, deleteTodo, deleteDoneTodos } = useTodos();
+  const { todos, isLoading, addTodo, toggleTodo, deleteTodo, deleteDoneTodos, reorderTodos } = useTodos();
+
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const handleAdd = () => {
     const trimmed = newTodo.trim();
@@ -52,6 +90,17 @@ const TodoList = () => {
       addTodo.mutate(trimmed);
       setNewTodo('');
     }
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = todos.findIndex((t) => t.id === active.id);
+    const newIndex = todos.findIndex((t) => t.id === over.id);
+    const newOrder = arrayMove(todos, oldIndex, newIndex);
+
+    reorderTodos.mutate(newOrder);
   };
 
   return (
@@ -81,16 +130,20 @@ const TodoList = () => {
           {isLoading ? (
             <p className='text-sm text-gray-500 dark:text-gray-400'>Loading...</p>
           ) : (
-            <ul className='space-y-2'>
-              {todos?.map((todo) => (
-                <TodoElement
-                  key={todo.id}
-                  todo={todo}
-                  onToggle={() => toggleTodo.mutate(todo)}
-                  onDelete={() => deleteTodo.mutate(todo.id)}
-                />
-              ))}
-            </ul>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={todos.map((todo) => todo.id)} strategy={verticalListSortingStrategy}>
+                <ul className='space-y-2'>
+                  {todos.map((todo) => (
+                    <SortableTodo
+                      key={todo.id}
+                      todo={todo}
+                      onToggle={() => toggleTodo.mutate(todo)}
+                      onDelete={() => deleteTodo.mutate(todo.id)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
 
