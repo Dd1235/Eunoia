@@ -6,6 +6,65 @@ import { PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { Loader2 } from 'lucide-react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
+
+type BackgroundOption = {
+  label: string;
+  value: string;
+  src: string; // URL to the audio file
+};
+
+const BACKGROUND_OPTIONS: BackgroundOption[] = [
+  { label: 'Ocean', value: 'ocean', src: '/src/assets/ocean.mp3' },
+  { label: 'Rain', value: 'rain', src: '/src/assets/rain.mp3' },
+  { label: 'Flowing Focus', value: 'flowing_focus', src: '/src/assets/Flowing_Focus.mp3' },
+  { label: 'Mellow Focus', value: 'mellow_focus', src: '/src/assets/Mellow_Focus.mp3' },
+];
+
+const BackgroundSelect = ({ selected, onSelect }: { selected: string; onSelect: (value: string) => void }) => {
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+
+  const playPreview = (src: string) => {
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+      audioPreviewRef.current.currentTime = 0;
+    }
+
+    const audio = new Audio(src);
+    audioPreviewRef.current = audio;
+    audio.play().catch(console.error);
+
+    // Stop after 3 seconds
+    setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }, 3000);
+  };
+
+  const handleClick = (bg: BackgroundOption) => {
+    onSelect(bg.value);
+    playPreview(bg.src);
+  };
+
+  return (
+    <div className='flex flex-wrap gap-2'>
+      {BACKGROUND_OPTIONS.map((bg) => (
+        <button
+          key={bg.value}
+          onClick={() => handleClick(bg)}
+          className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+            selected === bg.value
+              ? 'bg-black text-white dark:bg-zinc-100 dark:text-black'
+              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'
+          }`}
+        >
+          {bg.label}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 const formatTime = (secs: number) => {
   if (isNaN(secs)) return '0:00';
@@ -13,6 +72,13 @@ const formatTime = (secs: number) => {
   const s = Math.floor(secs % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
 };
+
+interface MeditationListItem {
+  id: string;
+  transcript: string;
+  audio_url: string;
+  created_at: string;
+}
 
 const GeneratedMeditation = () => {
   const [prompt, setPrompt] = useState('');
@@ -24,8 +90,14 @@ const GeneratedMeditation = () => {
   const [isMuted, setIsMuted] = useState(true);
   const [duration, setDuration] = useState(0);
 
+  const [selectedBg, setSelectedBg] = useState('ocean');
+  const { user } = useAuth();
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleEnded = () => setIsPlaying(false);
+
+  const [myMeditations, setMyMeditations] = useState<MeditationListItem[]>([]);
 
   // Update mute toggle
   useEffect(() => {
@@ -67,6 +139,33 @@ const GeneratedMeditation = () => {
     return () => audio.removeEventListener('ended', handleEnded);
   }, [audioUrl]);
 
+  // Fetch all user meditations
+  useEffect(() => {
+    const fetchMeditations = async () => {
+      if (!user || !accessToken) return;
+      try {
+        const res = await fetch('http://localhost:8000/meditate/list', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch meditations');
+        const data = await res.json();
+        setMyMeditations(data.meditations || []);
+      } catch (err) {
+        setMyMeditations([]);
+      }
+    };
+    fetchMeditations();
+  }, [user, accessToken]);
+
+  // Fetch session and set accessToken
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setAccessToken(data.session?.access_token || null);
+    };
+    fetchSession();
+  }, []);
+
   // Main handler
   const handleGenerate = async () => {
     console.log('[generate] called with prompt:', prompt);
@@ -83,10 +182,15 @@ const GeneratedMeditation = () => {
 
     const formData = new FormData();
     formData.append('prompt', prompt);
+    formData.append('background', selectedBg);
+    formData.append('user_id', user?.id || 'anonymous');
 
     try {
       const res = await fetch('http://localhost:8000/meditate/', {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: formData,
       });
 
@@ -98,8 +202,7 @@ const GeneratedMeditation = () => {
       console.log('[generate] response:', data);
 
       setTranscript(data.transcript);
-      const fullUrl = `http://localhost:8000${data.audioUrl}`;
-      setAudioUrl(fullUrl);
+      setAudioUrl(data.audioUrl);
 
       setTimeout(() => {
         if (audioRef.current) {
@@ -109,18 +212,10 @@ const GeneratedMeditation = () => {
       }, 500);
     } catch (err) {
       console.error('Error during generation:', err);
-      alert('Failed to generate meditation. See console for details.');
+      alert(`Failed to generate meditation. ${err}`);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleReplay = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.play().catch(console.error);
-    setIsPlaying(true);
   };
 
   const togglePlay = () => {
@@ -156,8 +251,9 @@ const GeneratedMeditation = () => {
   };
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-6 pb-10'>
       <Textarea placeholder='Enter a meditation prompt...' value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+      <BackgroundSelect selected={selectedBg} onSelect={setSelectedBg} />
       <Button onClick={handleGenerate} disabled={isLoading || !prompt.trim()} className='w-full'>
         {isLoading ? (
           <>
@@ -208,6 +304,25 @@ const GeneratedMeditation = () => {
             <p className='whitespace-pre-line text-gray-700 dark:text-gray-300'>{transcript}</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* My Meditations List */}
+      {user && myMeditations.length > 0 && (
+        <div className='mt-8'>
+          <h2 className='mb-2 text-lg font-semibold'>My Meditations</h2>
+          <ul className='space-y-2'>
+            {myMeditations.map((m) => (
+              <li key={m.id} className='flex flex-col gap-1 rounded border p-2'>
+                <span className='text-xs text-gray-500'>{new Date(m.created_at).toLocaleString()}</span>
+                <span className='font-medium'>
+                  {m.transcript.slice(0, 80)}
+                  {m.transcript.length > 80 ? '...' : ''}
+                </span>
+                <audio controls src={m.audio_url} className='mt-1 w-full' />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <audio ref={audioRef} src={audioUrl} muted={isMuted} />

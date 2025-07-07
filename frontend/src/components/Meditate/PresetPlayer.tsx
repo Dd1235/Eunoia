@@ -11,57 +11,46 @@ const tracks = [
 ];
 
 const PresetPlayer = () => {
-  const [trackIndex, setTrackIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState<number | null>(null); // generics, can be either number of null, and initially it is null
   const [isMuted, setIsMuted] = useState(true);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRefs = useRef<HTMLAudioElement[]>([]); // persist a mtable element across re renders
 
+  // Pause all on unmount
   useEffect(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.load();
-      audio.loop = true;
-      audio.muted = isMuted;
-      if (isPlaying) audio.play();
-    }
-  }, [trackIndex]);
+    return () => {
+      audioRefs.current.forEach((a) => a && a.pause());
+    };
+  }, []);
 
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.muted = isMuted;
-    }
-  }, [isMuted]);
+  const togglePlay = (index: number) => {
+    const currentAudio = audioRefs.current[currentTrack ?? -1];
+    const newAudio = audioRefs.current[index];
 
-  const togglePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) audio.pause();
-    else audio.play();
-    setIsPlaying(!isPlaying);
+    if (currentTrack === index) {
+      newAudio?.pause();
+      setCurrentTrack(null);
+    } else {
+      currentAudio?.pause();
+      if (newAudio) {
+        newAudio.muted = isMuted;
+        newAudio.loop = true;
+        newAudio.play();
+        setCurrentTrack(index);
+      }
+    }
   };
 
   const toggleMute = () => {
-    setIsMuted((prev) => !prev);
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    audioRefs.current.forEach((a) => {
+      if (a) a.muted = newMuted;
+    });
   };
-
   return (
-    <div className='space-y-4 pb-10'>
-      <div className='text-center text-lg font-medium'>{tracks[trackIndex].label}</div>
-
-      <div className='flex justify-center gap-4'>
-        <Button onClick={togglePlayPause} size='icon'>
-          {isPlaying ? <PauseIcon className='h-6 w-6' /> : <PlayIcon className='h-6 w-6' />}
-        </Button>
-
-        <Button
-          onClick={() => {
-            setIsPlaying(false);
-            setTrackIndex((i) => (i + 1) % tracks.length);
-          }}
-        >
-          Switch Track
-        </Button>
-
+    <div className='flex max-h-[100vh] flex-col gap-4 overflow-y-auto p-4'>
+      {/* Mute/unmute button */}
+      <div className='flex justify-end'>
         <Button onClick={toggleMute} size='icon' variant='ghost'>
           {isMuted ? (
             <SpeakerXMarkIcon className='h-6 w-6 text-gray-700 dark:text-gray-200' />
@@ -71,7 +60,26 @@ const PresetPlayer = () => {
         </Button>
       </div>
 
-      <audio ref={audioRef} src={tracks[trackIndex].src} loop />
+      {/* Track list */}
+      {tracks.map((track, index) => (
+        <div
+          key={index}
+          className='flex items-center justify-between rounded-lg border border-gray-300 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800'
+        >
+          <div className='text-sm font-medium text-gray-800 dark:text-gray-100'>{track.label}</div>
+          <Button onClick={() => togglePlay(index)} size='icon'>
+            {currentTrack === index ? <PauseIcon className='h-5 w-5' /> : <PlayIcon className='h-5 w-5' />}
+          </Button>
+          <audio
+            ref={(el) => {
+              if (el) audioRefs.current[index] = el;
+            }}
+            src={track.src}
+            preload='auto'
+            loop
+          />
+        </div>
+      ))}
     </div>
   );
 };
