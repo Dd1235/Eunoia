@@ -23,7 +23,8 @@ export const useTodos = () => {
         .from('todos')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('priority', { ascending: true }); // instead of created_at
+
 
       if (error) throw error;
       return data;
@@ -33,14 +34,22 @@ export const useTodos = () => {
 
   // ── Add Todo ──────────────────────────────────────────────
   const addTodo = useMutation({
-    mutationFn: async (content: string) => {
-      const { error } = await supabase.from('todos').insert([
-        { content, user_id: user?.id },
-      ]);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
-  });
+  mutationFn: async (content: string) => {
+    // Step 1: shift all existing todos for the user
+    const { error: updateError } = await supabase.rpc('increment_priorities_for_user', {
+      uid: user?.id,
+    });
+    if (updateError) throw updateError;
+
+    // Step 2: insert the new todo with priority 1
+    const { error: insertError } = await supabase.from('todos').insert([
+      { content, user_id: user?.id, priority: 1 },
+    ]);
+    if (insertError) throw insertError;
+  },
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+});
+
 
   // ── Toggle Todo ───────────────────────────────────────────
   const toggleTodo = useMutation({
