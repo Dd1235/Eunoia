@@ -10,13 +10,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 const clearTimer = () => localStorage.removeItem('focus.timer');
 
-// function formatHms(total: number) {
-//   const h = Math.floor(total / 3600);
-//   const m = Math.floor((total % 3600) / 60);
-//   const s = total % 60;
-//   return `${h}h ${m}m ${s}s`;
-// }
-
 type Running = {
   status: 'running';
   id: string;

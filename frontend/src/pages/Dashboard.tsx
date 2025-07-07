@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Container } from '../components/Layout/Container';
 import { format, parse, addDays, subDays, startOfDay } from 'date-fns';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
-import { useLogs } from '../lib/useLogs';
+import { useLogs } from '../hooks/useLogs';
 
 /* ------------------------------------------------------------------
  * Types + RPC helpers (re‑use existing Postgres functions)
@@ -86,7 +86,8 @@ const bucketWeeks = (rows: CalRow[]) => {
  * ------------------------------------------------------------------*/
 const Dashboard: FC = () => {
   const { user } = useAuth();
-  const { logs, loading: logsLoading } = useLogs();
+  const { data: logs, isLoading: logsLoading } = useLogs();
+
   const sleep = useQuery({ queryKey: ['sleep', user?.id], queryFn: () => fetchSleep(user!.id), enabled: !!user });
   const study = useQuery({ queryKey: ['study', user?.id], queryFn: () => fetchStudy(user!.id), enabled: !!user });
   const mood = useQuery({ queryKey: ['mood', user?.id], queryFn: () => fetchMood(user!.id), enabled: !!user });
