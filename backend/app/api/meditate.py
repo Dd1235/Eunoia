@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from app.api.deps import get_current_user
 from app.services.meditation import (
+    generate_meditation_prompt,
     generate_transcript,
     mix_with_bg,
     store_meditation,
@@ -35,14 +36,24 @@ async def create(
     user_id: str = Form(...),
     uid: str = Depends(get_current_user),
 ):
+    # print("DEBUG: User verification step")
     if user_id != uid:
+        print(f"DEBUG: User mismatch: form user_id={user_id}, token uid={uid}")
         raise HTTPException(403, "User mismatch")
+    # print(f"DEBUG: User verified: {uid}")
+    # print(f"DEBUG: Generating transcript for prompt: {prompt}")
     transcript = generate_transcript(prompt)
+    # print(f"DEBUG: Transcript generated: {transcript[:60]}...")
+    # print("DEBUG: Generating TTS audio")
     wav = await tts_to_wav(transcript)
+    # print("DEBUG: TTS audio generated")
     bg_path = AUDIO_MAP.get(background, DEFAULT_BG)
+    # print(f"DEBUG: Selected background: {background}, path: {bg_path}")
     mp3 = mix_with_bg(wav, bg_path)
-    # Store in supabase
+    # print("DEBUG: Mixed with background audio")
+    # print("DEBUG: Uploading to Supabase Storage and inserting DB row")
     audio_url = await store_meditation(user_id, transcript, mp3)
+    # print(f"DEBUG: Stored in Supabase, audio_url: {audio_url}")
     return {"transcript": transcript, "audioUrl": audio_url}
 
 
@@ -69,3 +80,23 @@ def list_meditations(uid: str = Depends(get_current_user)):
     )
     meditations = res.data if hasattr(res, "data") else []
     return {"meditations": meditations}
+
+
+@router.get("/prompt")
+def get_meditation_prompt(uid: str = Depends(get_current_user)):
+    # Fetch last three mood logs for the user from Supabase
+    logs_res = (
+        supabase.table("mood_logs")
+        .select("score, note, at")
+        .eq("user_id", uid)
+        .order("at", desc=True)
+        .limit(3)
+        .execute()
+    )
+    logs = logs_res.data if hasattr(logs_res, "data") else []
+    # Format logs as a string for the prompt generator
+    logs_str = "; ".join(
+        [f"score: {l.get('score')}, note: {l.get('note', '')}" for l in logs]
+    )
+    prompt = generate_meditation_prompt(logs_str)
+    return {"prompt": prompt}

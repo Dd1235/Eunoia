@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { LightBulbIcon } from '@heroicons/react/24/outline';
 
 type BackgroundOption = {
   label: string;
@@ -98,6 +99,12 @@ const GeneratedMeditation = () => {
   const handleEnded = () => setIsPlaying(false);
 
   const [myMeditations, setMyMeditations] = useState<MeditationListItem[]>([]);
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleTranscript = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
 
   // Update mute toggle
   useEffect(() => {
@@ -252,7 +259,35 @@ const GeneratedMeditation = () => {
 
   return (
     <div className='space-y-6 pb-10'>
-      <Textarea placeholder='Enter a meditation prompt...' value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+      <div className='flex gap-2'>
+        <Textarea
+          placeholder='Enter a meditation prompt...'
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          className='h-full min-h-[120px] flex-1 resize-none'
+        />
+        <Button
+          type='button'
+          variant='outline'
+          onClick={async () => {
+            if (!accessToken) return;
+            try {
+              const res = await fetch('http://localhost:8000/meditate/prompt', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              if (!res.ok) throw new Error('Failed to fetch prompt');
+              const data = await res.json();
+              setPrompt(data.prompt || '');
+            } catch (err) {
+              alert('Could not fetch prompt.');
+            }
+          }}
+          className='flex h-12 min-h-0 items-center gap-2 px-4 text-base font-medium'
+        >
+          <LightBulbIcon className='h-5 w-5 text-black dark:text-white' />
+          <span>Suggest Prompt</span>
+        </Button>
+      </div>
       <BackgroundSelect selected={selectedBg} onSelect={setSelectedBg} />
       <Button onClick={handleGenerate} disabled={isLoading || !prompt.trim()} className='w-full'>
         {isLoading ? (
@@ -311,16 +346,22 @@ const GeneratedMeditation = () => {
         <div className='mt-8'>
           <h2 className='mb-2 text-lg font-semibold'>My Meditations</h2>
           <ul className='space-y-2'>
-            {myMeditations.map((m) => (
-              <li key={m.id} className='flex flex-col gap-1 rounded border p-2'>
-                <span className='text-xs text-gray-500'>{new Date(m.created_at).toLocaleString()}</span>
-                <span className='font-medium'>
-                  {m.transcript.slice(0, 80)}
-                  {m.transcript.length > 80 ? '...' : ''}
-                </span>
-                <audio controls src={m.audio_url} className='mt-1 w-full' />
-              </li>
-            ))}
+            {myMeditations.map((m) => {
+              const isExpanded = expandedId === m.id;
+              return (
+                <li
+                  key={m.id}
+                  className='flex cursor-pointer flex-col gap-1 rounded border p-2 transition hover:bg-muted/30'
+                  onClick={() => toggleTranscript(m.id)}
+                >
+                  <span className='text-xs text-gray-500'>{new Date(m.created_at).toLocaleString()}</span>
+                  <span className='whitespace-pre-wrap font-medium'>
+                    {isExpanded ? m.transcript : m.transcript.slice(0, 80) + (m.transcript.length > 80 ? '...' : '')}
+                  </span>
+                  <audio controls src={m.audio_url} className='mt-1 w-full' />
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
