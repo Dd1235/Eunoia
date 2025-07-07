@@ -9,8 +9,12 @@ export type Todo = {
   content: string;
   done: boolean;
   created_at: string;
-  priority: number;   // ←  add this so TS knows we sort by it
+  priority: number;
 };
+
+/* ─── helpers ─── */
+const isUuid = (s: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 
 /* ─── hook ─── */
 export const useTodos = () => {
@@ -23,7 +27,7 @@ export const useTodos = () => {
     isLoading,
     error,
   } = useQuery<Todo[]>({
-    queryKey: ['todos'],
+    queryKey: ['todos', user?.id],     // 👈 user-scoped cache key
     enabled: !!user,
     queryFn: async () => {
       if (!user) return [];
@@ -32,7 +36,6 @@ export const useTodos = () => {
         .select('*')
         .eq('user_id', user.id)
         .order('priority', { ascending: true });
-
       if (error) throw error;
       return data;
     },
@@ -41,64 +44,59 @@ export const useTodos = () => {
   /* ── Add ───────────────────────────────────────────────── */
   const addTodo = useMutation({
     mutationFn: async (content: string) => {
-      // 1️ shift existing priorities so slot #1 is free
       await supabase.rpc('increment_priorities_for_user', { uid: user!.id });
 
-      // 2️ insert new todo at priority 1
       const { data, error } = await supabase
         .from('todos')
-        .insert({
-          content,
-          user_id: user!.id,
-          priority: 1,
-        })
+        .insert({ content, user_id: user!.id, priority: 1 })
         .select()
         .single();
-
       if (error) throw error;
       return data as Todo;
     },
 
-    /* optimistic: prepend immediately */
+    /* optimistic UI */
     onMutate: async (content) => {
-      await queryClient.cancelQueries({ queryKey: ['todos'] });
-      const prev = queryClient.getQueryData<Todo[]>(['todos']) ?? [];
+      await queryClient.cancelQueries({ queryKey: ['todos', user?.id] });
+      const prev = queryClient.getQueryData<Todo[]>(['todos', user?.id]) ?? [];
+
       const optimistic: Todo = {
-        id: `optimistic-${Date.now()}`,
+        id: crypto.randomUUID(),             // ✅ syntactically valid UUID
         user_id: user!.id,
         content,
         done: false,
         created_at: new Date().toISOString(),
         priority: 1,
       };
-      queryClient.setQueryData(['todos'], [optimistic, ...prev]);
+      queryClient.setQueryData(['todos', user?.id], [optimistic, ...prev]);
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(['todos'], ctx.prev);
+      if (ctx?.prev) queryClient.setQueryData(['todos', user?.id], ctx.prev);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
   });
 
   /* ── Re-order (drag-drop) ──────────────────────────────── */
   const reorderTodos = useMutation({
-    mutationFn: async (ordered: Todo[]) =>
-      supabase.rpc('reorder_user_todos', {
+    mutationFn: async (ordered: Todo[]) => {
+      const ids = ordered.map((t) => t.id).filter(isUuid); // strip optimistic ids
+      return supabase.rpc('reorder_user_todos', {
         uid: user!.id,
-        ordered_ids: ordered.map((t) => t.id), // param name must be ordered_ids
-      }),
+        ordered_ids: ids,                  // pg expects jsonb
+      });
+    },
 
-    /* optimistic: show new order instantly */
     onMutate: async (ordered) => {
-      await queryClient.cancelQueries({ queryKey: ['todos'] });
-      const prev = queryClient.getQueryData<Todo[]>(['todos']);
-      queryClient.setQueryData(['todos'], ordered);
+      await queryClient.cancelQueries({ queryKey: ['todos', user?.id] });
+      const prev = queryClient.getQueryData<Todo[]>(['todos', user?.id]);
+      queryClient.setQueryData(['todos', user?.id], ordered);
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(['todos'], ctx.prev);
+      if (ctx?.prev) queryClient.setQueryData(['todos', user?.id], ctx.prev);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
   });
 
   /* ── Toggle done ───────────────────────────────────────── */
@@ -110,7 +108,7 @@ export const useTodos = () => {
         .eq('id', todo.id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
   });
 
   /* ── Delete single ─────────────────────────────────────── */
@@ -119,7 +117,7 @@ export const useTodos = () => {
       const { error } = await supabase.from('todos').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
   });
 
   /* ── Clear completed ───────────────────────────────────── */
@@ -132,10 +130,9 @@ export const useTodos = () => {
         .eq('done', true);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
   });
 
-  /* ── Expose API ────────────────────────────────────────── */
   return {
     todos,
     isLoading,

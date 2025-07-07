@@ -93,3 +93,6 @@ update todos t
   from ranked
  where t.id = ranked.id;
 ```
+
+-- Call the function once for that user
+SELECT increment_priorities_for_user('2186bc0f-cc85-4d97-b066-39c625aff1f4'::uuid);
