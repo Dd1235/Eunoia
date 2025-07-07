@@ -264,7 +264,7 @@ const GeneratedMeditation = () => {
           placeholder='Enter a meditation prompt...'
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          className='h-full min-h-[120px] flex-1 resize-none'
+          className='h-12 min-h-[48px] flex-1 resize-none'
         />
         <Button
           type='button'

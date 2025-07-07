@@ -51,18 +51,57 @@ def generate_meditation_prompt(logs: str) -> str:
 
 
 def generate_transcript(topic: str) -> str:
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a meditation guide. <100 words."},
-            {
-                "role": "user",
-                "content": f"Create a 1-minute calming meditation for: {topic}",
-            },
-        ],
+    """
+    Generates a 1-minute calming meditation script using Gemini.
+    Falls back to OpenAI if Gemini fails.
+    The input topic is a vague user phrase like 'feeling sad' or 'tired and demotivated'.
+    """
+    instruction = (
+        "You are a skilled meditation guide. "
+        "Your job is to create a short, slow, and calming 1-minute guided meditation script based on the user's emotional need.\n"
+        "The input is a brief user message describing how they feel (e.g., 'feeling sad', 'I’m stressed about exams', 'tired and unmotivated'). "
+        "Reason about what emotional or psychological support the user might need.\n\n"
+        "Then, generate a soothing meditation script (under 100 words) that reflects that need. "
+        "Use simple, encouraging language. "
+        "Add gentle pauses like [pause] to let the listener breathe and reflect.\n\n"
+        f"User input: '{topic}'\n"
+        "Meditation Script:"
     )
-    content = resp.choices[0].message.content
-    return content.strip() if content else ""
+
+    try:
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[{"role": "user", "parts": [{"text": instruction}]}],
+        )
+        if hasattr(response, "text") and response.text:
+            return response.text.strip()
+    except Exception as e:
+        print(f"[Gemini Fallback Triggered] {e}")
+
+    # Fallback to OpenAI
+    print("[Fallback] Using OpenAI GPT-4o-mini.")
+    try:
+        fallback_instruction = (
+            "You are a meditation guide. Create a short, calming 1-minute meditation script (under 100 words). "
+            "The script should address the emotional need implied by the user input, and include natural pauses like [pause]. "
+            f"The user wrote: '{topic}'"
+        )
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": fallback_instruction},
+                {"role": "user", "content": topic},
+            ],
+        )
+        content = resp.choices[0].message.content
+        return (
+            content.strip()
+            if content
+            else "Take a deep breath. [pause] You are safe. [pause] Let go of tension."
+        )
+    except Exception as e:
+        print(f"[OpenAI Fallback Error] {e}")
+        return "Take a deep breath. [pause] You are safe. [pause] Let go of tension."
 
 
 async def tts_to_wav(text: str) -> BytesIO:
