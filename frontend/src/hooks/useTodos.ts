@@ -141,12 +141,39 @@ const toggleTodo = useMutation({
 
   /* ── Delete single ─────────────────────────────────────── */
   const deleteTodo = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('todos').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
-  });
+  mutationFn: async (id: string) => {
+    const { error } = await supabase.from('todos').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  onMutate: async (id: string) => {
+    // Cancel any outgoing refetches
+    await queryClient.cancelQueries({ queryKey: ['todos', user?.id] });
+
+    // Snapshot the previous state
+    const previousTodos = queryClient.getQueryData(['todos', user?.id]);
+
+    // Optimistically update the cache by filtering out the deleted todo
+    queryClient.setQueryData(['todos', user?.id], (old: any) =>
+      old?.filter((todo: any) => todo.id !== id)
+    );
+
+    return { previousTodos };
+  },
+
+  onError: (err, id, context) => {
+    // Revert to previous state if the mutation fails
+    if (context?.previousTodos) {
+      queryClient.setQueryData(['todos', user?.id], context.previousTodos);
+    }
+  },
+
+  onSuccess: () => {
+    // Optionally revalidate from server
+    queryClient.invalidateQueries({ queryKey: ['todos', user?.id] });
+  },
+});
+
 
   /* ── Clear completed ───────────────────────────────────── */
   const deleteDoneTodos = useMutation({

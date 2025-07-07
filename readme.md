@@ -96,3 +96,30 @@ update todos t
 
 -- Call the function once for that user
 SELECT increment_priorities_for_user('2186bc0f-cc85-4d97-b066-39c625aff1f4'::uuid);
+
+Problem: Inserting a new todo at priority 1 violated the `(user_id, priority)` unique index, resulting in duplicate-key errors.
+Solution: Run `increment_priorities_for_user` first, which shifts every row by +1000 then renumbers back starting at 2, leaving slot 1 free.
+
+Problem: Drag-and-drop sent `"["id1","id2"]"` (a JSON string), so `jsonb_array_elements_text()` threw “cannot extract elements from a scalar”.
+Solution: Pass the raw array (no `JSON.stringify`) so Postgres receives a real `jsonb` array.
+
+Problem: Subsequent reorder still hit duplicate priorities.
+Solution: Use three-phase SQL (`+1000`, set new 1…n, then compact leftovers) so the unique index is never violated inside the transaction.
+
+Problem: Optimistic placeholder ids like `optimistic-123` failed `(value)::uuid` casts.
+Solution: Generate syntactically correct UUIDs with `crypto.randomUUID()` or filter non-UUIDs before the RPC.
+
+Problem: Checkbox clicks sometimes started a drag and the UI “snapped back”.
+Solution: Use `onPointerDown(e ⇒ e.stopPropagation())` on the checkbox/button plus an optimistic cache flip in `toggleTodo` to hide latency.
+
+Problem: Delete button was swallowed by DnD too.
+Solution: Use the same pointer guard.
+
+Problem: Cache briefly showed stale order/content after any mutation.
+Solution: Use TanStack Query’s `onMutate / onError / onSuccess` pattern for all write paths.
+
+onMutate: optimistically update the cache with the new state.
+onError: revert the cache to the previous state if the mutation fails.
+onSuccess: Ensure the cache reflects the final state after a successful mutation.
+
+Overall learning: Keep priorities dense only when needed (lazy re-balance during reorder), pass pure JSONB not double-stringified data, guard pointer events when mixing DnD with clicks, ensure every write happens inside a single SQL transaction (stored procedure) to satisfy the unique constraint at all intermediate steps, and always add an optimistic UI layer for a snappy experience.
