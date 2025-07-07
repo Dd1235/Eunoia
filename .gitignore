@@ -5,3 +5,4 @@ __pycache__
 .vscode/
 .cursor/
 sample_curl.txt
+settings.json
