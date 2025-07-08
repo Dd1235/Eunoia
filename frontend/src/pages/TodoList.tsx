@@ -7,8 +7,6 @@ import { useTodos } from '@/hooks/useTodos';
 import { TrashIcon } from '@heroicons/react/24/outline';
 
 /* ─── Todo row ─── */
-
-/* ─── Todo row ─── */
 const TodoElement = ({
   todo,
   onToggle,
@@ -32,14 +30,9 @@ const TodoElement = ({
   const [editedContent, setEditedContent] = useState(todo.content);
 
   const handleDoubleClick = () => {
-    if (!todo.done) { // Only allow editing if not done
+    if (!todo.done) {
+      // Only allow editing if not done
       setIsEditing(true);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSave();
     }
   };
 
@@ -48,6 +41,12 @@ const TodoElement = ({
       onEdit(todo.id, editedContent.trim());
     }
     setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    }
   };
 
   return (
@@ -70,19 +69,21 @@ const TodoElement = ({
       </label>
 
       {isEditing ? (
-        <input
-          type='text'
+        <textarea
           value={editedContent}
           onChange={(e) => setEditedContent(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
           autoFocus
           onClick={(e) => e.stopPropagation()} // Prevent checkbox interference
-          className='flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-base shadow-sm focus:border-black focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:border-white'
+          onPointerDown={(e) => e.stopPropagation()} // Prevent DND-Kit interference
+          className='flex-1 resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-base shadow-sm focus:border-black focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:border-white'
         />
       ) : (
         <span
           onDoubleClick={handleDoubleClick}
+          onClick={(e) => e.stopPropagation()} // Prevent checkbox interference
+          onPointerDown={(e) => e.stopPropagation()} // Prevent DND-Kit interference
           className={`flex-1 break-words text-sm leading-snug ${
             todo.done ? 'text-gray-400 line-through dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'
           }`}
