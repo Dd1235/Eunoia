@@ -16,12 +16,12 @@ Below are screenshots of the main features and pages of Eunoia. Each image highl
 ### Login Page
 
 ![Login](screenshots/login.png)
-_Simple, distraction-free login with Supabase authentication._
+_Simple, login with Supabase authentication. Similar signup_
 
 ### Home Page
 
 ![Home](screenshots/home.png)
-_The Home page brings together your study timer, sleep log, and mood log in a clean, two-column layout. 
+_The Home page brings together your study timer, sleep log, and mood log in a clean, two-column layout._
 
 ### Todo List
 
