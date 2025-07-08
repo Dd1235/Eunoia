@@ -1,0 +1,54 @@
+### Current agent output vs its Problems
+
+Don't want a resource providing agent but advice agent.
+
+eg. 
+
+
+1.  **"Start Leetcode"**
+
+    *   **Specific Action:** "Solve 2 LeetCode easy problems daily for the next week, focusing on array and string manipulation."
+    *   **Rationale:** This gives you a concrete, achievable goal. Big tech companies heavily use data structures and algorithms, and this is a focused way to improve.
+
+problem: The agent is supposed to give something like "Start leetcode is vague, pick a category and keep the goal, solve 2 medium problems" etc, it is not supposed to provide a hobby like, two problems a day, but an action, and when you complete it, you move on to next action.
+
+2.  **"Learn about image models"**
+
+    *   **Specific Action:** "Complete the fast.ai 'Practical Deep Learning for Coders' lesson on image classification and build a simple image classifier using a pre-trained model."
+    *   **Rationale:** This provides a structured learning path and a tangible project. It's also a good starting point for understanding image models.
+
+problem: It is not supposed to provide exact courses straight away, it is supposed to recognize that this is a vague prompt, and ask the user to change to something specific like Yolo, or ViT or Flamingo or whatever, or read lecture notes etc, and provide resources only if users asks for it,
+
+3.  **"Learn about Kohnen clustering"**
+
+    *   **Specific Action:** "Read the original Kohonen paper on self-organizing maps and implement a basic SOM in Python using NumPy."
+    *   **Rationale:** This combines theoretical understanding with practical implementation. Consider how this knowledge could be applied to a project relevant to a specific big tech company.
+
+
+
+**Prioritized Todo List:**
+
+Given your goal of getting into big tech, here's how I'd prioritize your todos:
+
+
+
+1.  **"Solve 2 LeetCode easy problems daily for the next week, focusing on array and string manipulation."** (High - crucial for interviews)
+
+problem: the model is unaware of what "Eunoia project" is, it is supposed to tell the user to pick the next step in the project, like feature X, and not just "finish the project", which is vague and not actionable.
+
+2.  **"Finish Eunoia project"** (Medium - good for demonstrating skills, but ensure it's well-documented and showcases relevant technologies)
+
+problem: not a resource agent, can provide resource only if user asks for them. Delete to a  resource agent later.
+
+3.  **"Complete the fast.ai 'Practical Deep Learning for Coders' lesson on image classification and build a simple image classifier using a pre-trained model."** (Medium - good for expanding knowledge, especially if roles you're interested in involve image processing)
+
+problem: its more about recognizing that its vague, and user should be taking the time to decide on a specific project first, and after user can give todos like "implement feature X", or "read about X thing i will use in the project", or "Prepare a list of features for the project", etc.
+Model should also be smart in comparing with other todos, and assigning priority, based on users other todos and goals.
+
+
+4.  **"Start a golang project"** (Medium - valuable if the company uses Go, tailor the project to showcase relevant skills)
+
+
+problem: there's nothing particularly wrong about saying "Study algorithm", the algorithm is specific enough, and this is not a resource providing agent, or a task providing agent, or at best it should say, "Instead of Learn Kohonen clustering, try to align according to your goals, like Read original paper or whatever resource you prefer to study from, or something like spend an hour looking at online resouces and learn about the algo" etc.
+
+5.  **"Read the original Kohonen paper on self-organizing maps and implement a basic SOM in Python using NumPy."** (Low - more niche, prioritize if it aligns with a specific company or role)
