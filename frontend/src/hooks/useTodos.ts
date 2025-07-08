@@ -61,7 +61,7 @@ export const useTodos = () => {
       const prev = queryClient.getQueryData<Todo[]>(['todos', user?.id]) ?? [];
 
       const optimistic: Todo = {
-        id: crypto.randomUUID(),             // ✅ syntactically valid UUID
+        id: crypto.randomUUID(),// ssyntactically valid UUID
         user_id: user!.id,
         content,
         done: false,
@@ -77,6 +77,40 @@ export const useTodos = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', user?.id] }),
   });
 
+  const editContent = useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { data, error: updateError } = await supabase
+        .from('todos')
+        .update({ content })
+        .eq('id', id)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+      return data as Todo;
+    },
+
+    onMutate: async ({ id, content }) => {
+      await queryClient.cancelQueries({ queryKey: ['todos', user?.id] });
+      const prev = queryClient.getQueryData<Todo[]>(['todos', user?.id]) ?? [];
+
+      queryClient.setQueryData(
+        ['todos', user?.id],
+        prev.map((t) => (t.id === id ? { ...t, content } : t)),
+      );
+
+      return { prev };
+    },
+
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) {
+        queryClient.setQueryData(['todos', user?.id], ctx.prev);
+      }
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos', user?.id] });
+    },
+  });
   /* ── Re-order (drag-drop) ──────────────────────────────── */
   const reorderTodos = useMutation({
     mutationFn: async (ordered: Todo[]) => {
@@ -197,5 +231,6 @@ const toggleTodo = useMutation({
     toggleTodo,
     deleteTodo,
     deleteDoneTodos,
+    editContent,
   };
 };
