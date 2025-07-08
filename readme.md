@@ -1,209 +1,117 @@
-Work in Progress
+# Eunoia Project Structure and Technical Overview
 
-Remarks: I am storing the logs in session storage (ps direct communication iwth supabase backend, fastapi backend is separate from this, in case the ai chat is down, the logs would still be independent of that), the reason for storing in session storage is to avoid loading again and again if you change pages while on the same website.
+## Backend
 
-But that means that if you add a new log, it will be reflected in the database, but not /logs,
-refreshing also won't update since it will fetch from session storage, can simply remove session storage, or need to find a way to have smarter caching.
+- **Framework:** FastAPI (Python)
+- **Location:** `backend/`
 
-Closing and reopening tab should update the logs
+### Key Folders and Files
 
-Could've used cloud firestore, bonus google points, but I wanted to use a relational database. Already used mongodb for edureach, and had DBMS last semester, so wanted to put those sql skills to use.
+- `app/` - Main FastAPI application code
+  - `api/` - API endpoints for chat, meditation, and dependencies
+  - `core/` - Configuration and logging utilities
+  - `models/` - Pydantic and DB models (e.g., chat session)
+  - `services/` - Business logic
+    - `agents/` - Agent logic for OpenAI/Gemini (modular, ready for LLM integration)
+    - `meditation.py` - Handles meditation prompt, transcript, TTS, and Supabase upload
+    - `supabase_client.py` - Reusable Supabase client
+    - `session_store.py` - In-memory session management
+    - `supabase_logs.py` - Log fetching from Supabase
+- `static/audios/` - Preset background audio files for meditation
+- `generated_audios/` - Locally generated meditation audio (for development/testing, this was when audios were being served using fastapi instead of using supabase storage)
+- `requirements.txt` - Python dependencies
 
-Using react query, need to learn it better.
-Was using useEffects and the typical flow for Edureach
+### Data Storage
 
-I LOVE SUPABASE!!!
+- **Logs and chat sessions:** Currently stored in memory or local files for development. Meditation audio and metadata are stored in Supabase Storage and DB.
+- **No todo AI agent yet.**
 
-OAuth login signup in two lines of code!!
+## Frontend
 
-7th July log
+- **Framework:** React (TypeScript, Vite, TanStack Query, TailwindCSS)
+- **Location:** `frontend/`
 
-In a todo list where a priority field is used to define display order, maintaining a gapless and strictly increasing sequence (1, 2, 3, ...) can introduce complexity when handling inserts, deletions, and reordering. One approach is to consistently insert new items at the top with priority = 1, shifting all other items down by incrementing their priorities. This ensures the newest items appear at the top while preserving order semantics. When a todo is deleted, the resulting gap in the sequence does not impact functionality, as the UI continues to sort by priority. Gaps are harmless and only become a concern if strict contiguity is required, such as when hitting a maximum item limit or for clean index management. In such cases, priorities can be rebalanced lazily during drag-and-drop reordering by reassigning them from 1 to N in visual order. This strategy works well under the assumption that each user maintains a relatively small number of todos (e.g., ≤50), making the occasional full reordering operation efficient, while avoiding the overhead of rebalancing on every insert or delete.
+### Key Folders and Files
 
----
+- `src/components/` - Modular UI components
+  - `TodoList/` - Todo list, drag-and-drop, and quick note components
+  - `UserProfile/` - Goals management UI
+  - `Meditate/` - Meditation generation and playback
+  - `ui/` - Reusable UI primitives (button, card, accordion, etc.)
+  - `Layout/` - Layout containers
+- `src/pages/` - Top-level pages (Dashboard, TodoList, MeditateWithAI, UserProfile, etc.)
+- `src/hooks/` - Custom hooks for todos, goals, logs, chat, etc.
+- `src/types/` - Shared TypeScript types (todo, meditate, user, study)
+- `src/lib/` - Utility and API client code (Supabase, session, study/sleep/mood logic)
+- `src/assets/` - Audio and image assets
+- `public/` - Static files and images
+- `global.css` - Tailwind and global styles
 
-## What went wrong — timeline
+### State and Data
 
-| Step  | Action                                                                                                                                              | Result                                             |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| **1** | Added UNIQUE index `(user_id, priority)`                                                                                                            | Any momentary duplicate priority → `23505` error   |
-| **2** | Original client logic updated rows **one-by-one**                                                                                                   | Drag-drop & insert both crashed (`duplicate key…`) |
-| **3** | We introduced a “two-phase” SQL fix:<br>   • shift `+1000` → renumber **1…N**                                                                       | Drag-drop now safe ✔️                              |
-| **4** | **Insert** still failed: renumbering back to **1** left **no free slot** for the new row (we insert `priority = 1`, clashing with the old top item) | `23505` persists on **add todo**                   |
+- Uses TanStack Query for all data fetching, caching, and optimistic updates
+- Session and log state is cached in sessionStorage for fast navigation
+- All authentication and user management via Supabase Auth
 
-### 1 Replace `increment_priorities_for_user` with **“leave slot #1 free”** version
+## Supabase
 
-```sql
-create or replace function increment_priorities_for_user(uid uuid)
-returns void
-language plpgsql
-as $$
-begin
-  -- Phase A: move everyone far away
-  update todos
-     set priority = priority + 1000
-   where user_id = uid;
+- **Location:** `supabase/`
+- **Purpose:** Database, authentication, storage, and migrations
 
-  -- Phase B: renumber back starting at **2** (so 1 is free)
-  with ranked as (
-       select id,
-              row_number() over (order by priority) + 1  -- note **+1**
-                as new_p
-         from todos
-        where user_id = uid
-  )
-  update todos t
-     set priority = ranked.new_p
-    from ranked
-   where t.id = ranked.id;
-end;
-$$;
-```
+### Key Folders and Files
 
-_Outcome:_ after the function runs, all existing todos are `2, 3, 4…`, leaving
-`1` vacant for the incoming todo ⇒ **no duplicate**.
+- `migrations/` - SQL migrations for all tables (todos, meditations, goals, logs, etc.)
+- `config.toml` - Supabase project configuration
+- `.temp/` - Supabase CLI temp files
 
-### 2 Client code stays almost identical
+### Notable Tables
 
-You already changed the call signature (`ordered_ids`).
-The only thing to verify is that **`addTodo`** still calls this RPC before the
-`insert` (it does):
+- `todos` - User todos with priority ordering
+- `meditations` - Meditation transcripts and audio URLs
+- `long_term_goals`, `short_term_goals` - User goals
+- `free_notes` - Quick notes
+- `study_sessions`, `sleep_logs`, `mood_logs` - User logs
 
-```ts
-await supabase.rpc("increment_priorities_for_user", { uid: user!.id });
-await supabase.from("todos").insert({
-  content,
-  user_id: user!.id,
-  priority: 1, // now guaranteed unique
-});
-```
+## Notable Problems and Solutions
 
-### 3 (One-off) wipe any lingering duplicates
+### Todo Priority and Drag-and-Drop
 
-If previous crashes left duplicates, run once in SQL console:
+- **Problem:** Maintaining unique, gapless priorities for todos with drag-and-drop and insertions led to duplicate key errors and race conditions.
+- **Solution:**
+  - Used a two-phase SQL function to shift all priorities by +1000, then renumber starting at 2, leaving slot 1 free for new inserts.
+  - All reordering and inserts happen inside a single SQL transaction to avoid unique constraint violations.
+  - Optimistic UI updates and pointer event guards prevent drag-and-drop from interfering with checkbox and delete actions.
 
-```sql
-with ranked as (
-  select id,
-         row_number() over (partition by user_id order by priority) as new_p
-    from todos
-)
-update todos t
-   set priority = ranked.new_p
-  from ranked
- where t.id = ranked.id;
-```
+### React Hook Order Violation
 
--- Call the function once for that user
-SELECT increment_priorities_for_user('2186bc0f-cc85-4d97-b066-39c625aff1f4'::uuid);
+- **Problem:** Conditional hook calls in the logs page caused React errors.
+- **Solution:** All hooks are now called unconditionally at the top of each component. Data fetching is handled by TanStack Query with proper `enabled` flags.
 
-Problem: Inserting a new todo at priority 1 violated the `(user_id, priority)` unique index, resulting in duplicate-key errors.
-Solution: Run `increment_priorities_for_user` first, which shifts every row by +1000 then renumbers back starting at 2, leaving slot 1 free.
+### Session and Log Caching
 
-Problem: Drag-and-drop sent `"["id1","id2"]"` (a JSON string), so `jsonb_array_elements_text()` threw “cannot extract elements from a scalar”.
-Solution: Pass the raw array (no `JSON.stringify`) so Postgres receives a real `jsonb` array.
+- **Problem:** Session and log state was cached in sessionStorage for fast navigation, but this led to stale data if new logs were added.
+- **Solution:** Switched to TanStack Query for all log fetching and caching, with invalidation on mutation.
 
-Problem: Subsequent reorder still hit duplicate priorities.
-Solution: Use three-phase SQL (`+1000`, set new 1…n, then compact leftovers) so the unique index is never violated inside the transaction.
+### General
 
-Problem: Optimistic placeholder ids like `optimistic-123` failed `(value)::uuid` casts.
-Solution: Generate syntactically correct UUIDs with `crypto.randomUUID()` or filter non-UUIDs before the RPC.
+- All authentication is handled by Supabase JWTs.
+- Meditation audio is stored in Supabase Storage, not on the server.
+- The backend is ready for LLM agent integration but currently uses in-memory or local storage for logs and chat sessions.
 
-Problem: Checkbox clicks sometimes started a drag and the UI “snapped back”.
-Solution: Use `onPointerDown(e ⇒ e.stopPropagation())` on the checkbox/button plus an optimistic cache flip in `toggleTodo` to hide latency.
+## Folder Overview
 
-Problem: Delete button was swallowed by DnD too.
-Solution: Use the same pointer guard.
+### backend/
 
-Problem: Cache briefly showed stale order/content after any mutation.
-Solution: Use TanStack Query’s `onMutate / onError / onSuccess` pattern for all write paths.
+- FastAPI app, business logic, static and generated audio, requirements
 
-onMutate: optimistically update the cache with the new state.
-onError: revert the cache to the previous state if the mutation fails.
-onSuccess: Ensure the cache reflects the final state after a successful mutation.
+### frontend/
 
-Overall learning: Keep priorities dense only when needed (lazy re-balance during reorder), pass pure JSONB not double-stringified data, guard pointer events when mixing DnD with clicks, ensure every write happens inside a single SQL transaction (stored procedure) to satisfy the unique constraint at all intermediate steps, and always add an optimistic UI layer for a snappy experience.
+- React app, modular components, hooks, types, assets, pages, global styles
 
-Here’s the full log in plain text, ready to paste into your `README.md` or documentation file:
+### supabase/
+
+- Database migrations, config, and project files
 
 ---
 
-Log: React Hook Order Violation in `/logs` Page
-
-Problem:
-React threw the following error on the `/logs` page:
-
-```
-Error: Rendered more hooks than during the previous render.
-Warning: React has detected a change in the order of Hooks called by Logs.
-```
-
-Problem Code:
-
-```tsx
-if (!user) return <p>Log in</p>;
-const { data: logs, isLoading } = useLogs(); // Hook conditionally skipped
-```
-
-Root Cause:
-In React, all hooks (like `useState`, `useEffect`, `useQuery`, etc.) must be called in the **same order on every render**. If a hook is conditionally skipped—such as after an early `return`—React will detect the mismatch and throw an error.
-
-In this case, we also had a utility `useRestoreSession()` function containing a `useEffect()` that was called **after** checking for the user. This meant the hook inside `useRestoreSession()` was not run consistently, causing the hook order to differ between renders.
-
----
-
-Solution:
-
-1.  Move all hook calls—including `useLogs()` and `useRestoreSession()`—**above any conditional `return`** statements.
-2.  Rewrote `useLogs()` using [TanStack Query](https://tanstack.com/query/latest) to handle fetching, caching, and invalidation automatically.
-3.  Eliminated the old sessionStorage-based log state.
-
----
-
-New `useLogs()` (using TanStack Query):
-
-```tsx
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/context/AuthContext";
-
-export const useLogs = () => {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ["logs", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const since = new Date();
-      since.setDate(since.getDate() - 15);
-
-      const [study, sleep, mood] = await Promise.all([
-        supabase
-          .from("study_sessions")
-          .select("*")
-          .gte("started_at", since.toISOString())
-          .order("started_at", { ascending: false }),
-        supabase
-          .from("sleep_logs")
-          .select("*")
-          .gte("date", since.toISOString().slice(0, 10))
-          .order("date", { ascending: false }),
-        supabase
-          .from("mood_logs")
-          .select("*")
-          .gte("at", since.toISOString())
-          .order("at", { ascending: false }),
-      ]);
-
-      return {
-        study: study.data ?? [],
-        sleep: sleep.data ?? [],
-        mood: (mood.data ?? []).map((m) => ({
-          ...m,
-          formatted: new Date(m.at).toLocaleString(),
-        })),
-      };
-    },
-  });
-};
-```
+For more technical details, see the code and migration files in each folder.

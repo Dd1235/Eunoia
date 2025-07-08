@@ -6,11 +6,12 @@ interface Props {
   elapsedSecs: number;
   onSubmit: (prod: number, note: string) => void;
   onClose: () => void;
+  onDiscard: () => void;
 }
 
 const pills = Array.from({ length: 10 }, (_, i) => i + 1);
 
-export const FinishModal: FC<Props> = ({ elapsedSecs, onClose, onSubmit }) => {
+export const FinishModal: FC<Props> = ({ elapsedSecs, onClose, onSubmit, onDiscard }) => {
   const [prod, setProd] = useState(7);
   const [note, setNote] = useState('');
 
@@ -77,6 +78,13 @@ export const FinishModal: FC<Props> = ({ elapsedSecs, onClose, onSubmit }) => {
 
         <button type='button' onClick={onClose} className='block w-full text-center text-xs text-gray-400 underline'>
           Cancel
+        </button>
+        <button
+          type='button'
+          onClick={onDiscard}
+          className='mt-2 block w-full text-center text-xs text-red-500 underline'
+        >
+          Discard Session
         </button>
       </form>
     </div>

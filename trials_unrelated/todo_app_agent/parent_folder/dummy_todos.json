@@ -1,0 +1,32 @@
+[
+  {
+    "userId": "user_001",
+    "todoList": [
+      { "id": 1, "priority": 1, "content": "Start Leetcode", "done": false },
+      { "id": 2, "priority": 2, "content": "Update resume", "done": true },
+      { "id": 3, "priority": 3, "content": "Fix bug in Eunoia project session timer", "done": false },
+      { "id": 4, "priority": 4, "content": "Research image models", "done": false },
+      { "id": 5, "priority": 5, "content": "Go jogging", "done": true }
+    ]
+  },
+  {
+    "userId": "user_002",
+    "todoList": [
+      { "id": 1, "priority": 1, "content": "Learn Go", "done": false },
+      { "id": 2, "priority": 2, "content": "Build a URL shortener backend with Redis", "done": false },
+      { "id": 3, "priority": 3, "content": "Read about Kohonen clustering", "done": false },
+      { "id": 4, "priority": 4, "content": "Fix Supabase token auth in Eunoia", "done": true },
+      { "id": 5, "priority": 5, "content": "Clean room", "done": true }
+    ]
+  },
+  {
+    "userId": "user_003",
+    "todoList": [
+      { "id": 1, "priority": 1, "content": "Work on project", "done": false },
+      { "id": 2, "priority": 2, "content": "Finish database lab report", "done": false },
+      { "id": 3, "priority": 3, "content": "Revise Sorting Algorithms in C++", "done": true },
+      { "id": 4, "priority": 4, "content": "Learn about image models", "done": false },
+      { "id": 5, "priority": 5, "content": "Practice Git commands", "done": true }
+    ]
+  }
+]

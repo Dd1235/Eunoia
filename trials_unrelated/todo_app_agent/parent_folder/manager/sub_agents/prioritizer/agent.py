@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 
 prioritizer = Agent(
     name="prioritizer",
-    model="gemini-2.0-pro",
+    model="gemini-2.0-flash",
     description="Reorders and evaluates the user's todos according to their goal and focus capacity",
     instruction="""
 You are a prioritization agent.

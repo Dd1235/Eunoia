@@ -1,7 +1,7 @@
 // frontend/src/components/StudyTimer/StudyTimer.tsx
 
 import { PlayIcon, PauseIcon, StopIcon } from '@heroicons/react/24/solid';
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState, useRef } from 'react';
 import { Clock } from './Clock';
 import { FinishModal } from './FinishModal';
 import { startSession, updateBreak, endSession } from '../../lib/studySessions';
@@ -24,6 +24,7 @@ type Paused = {
   start: number;
   breakAcc: number;
   breakStart: number; // ms of current pause
+  pausedElapsed: number; // elapsed time at pause
 };
 
 type Idle = { status: 'idle' };
@@ -48,7 +49,9 @@ function reducer(state: State, action: Action): State {
       } as Running;
     case 'PAUSE':
       if (state.status !== 'running') return state;
-      return { ...state, status: 'paused', breakStart: action.breakStart } as Paused;
+      // Calculate elapsed at pause
+      const pausedElapsed = secondsSince(state.start) - state.breakAcc;
+      return { ...state, status: 'paused', breakStart: action.breakStart, pausedElapsed } as Paused;
     case 'RESUME':
       if (state.status !== 'paused') return state;
       return {
@@ -56,6 +59,7 @@ function reducer(state: State, action: Action): State {
         status: 'running',
         breakAcc: state.breakAcc + action.breakSeconds,
         breakStart: null,
+        pausedElapsed: undefined, // clear pausedElapsed
       } as Running;
     case 'RESET':
       return { status: 'idle' };
@@ -69,36 +73,85 @@ function secondsSince(ms: number) {
 }
 
 export const StudyTimer = () => {
-  // const [state, dispatch] = useReducer(reducer, { status: 'idle' });
-
-  const [state, dispatch] = useReducer(reducer, load<State>('focus.timer', { status: 'idle' } as State));
-  const [elapsed, setElapsed] = useState(0); // secs
-  const [breakElapsed, setBreakElapsed] = useState(0);
+  // Restore state from localStorage, including paused state
+  const [state, dispatch] = useReducer(
+    reducer,
+    (() => {
+      const loaded = load<State>('focus.timer', { status: 'idle' } as State);
+      // If restoring a paused state, ensure pausedElapsed is set
+      if (loaded.status === 'paused' && loaded.breakStart) {
+        // If pausedElapsed is missing (old state), calculate it
+        const pausedElapsed =
+          typeof loaded.pausedElapsed === 'number'
+            ? loaded.pausedElapsed
+            : secondsSince(loaded.start) - loaded.breakAcc;
+        return {
+          ...loaded,
+          pausedElapsed,
+        } as Paused;
+      }
+      return loaded;
+    })(),
+  );
+  const [elapsed, setElapsed] = useState(() => {
+    if (state.status === 'paused') {
+      return (state as Paused).pausedElapsed;
+    }
+    return 0;
+  }); // secs
+  const [breakElapsed, setBreakElapsed] = useState(() => {
+    if (state.status === 'paused') {
+      return secondsSince((state as Paused).breakStart);
+    }
+    return 0;
+  });
   const [showFinish, setShowFinish] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const breakIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Timer tick for running
   useEffect(() => {
-    if (state.status !== 'running') return; // early exit
-
-    const tick = () => setElapsed(secondsSince(state.start) - state.breakAcc);
-
-    tick(); // fire once immediately
+    if (state.status !== 'running') return;
+    const runningState = state as Running;
+    const tick = () => setElapsed(secondsSince(runningState.start) - runningState.breakAcc);
+    tick();
     const id = window.setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [state.status, state.start, state.breakAcc]);
+  }, [state]);
 
-  /* ── 2. tick break timer while paused ─────────────────────────── */
+  // Robust break timer effect for paused state
   useEffect(() => {
-    if (state.status !== 'paused') {
-      setBreakElapsed(0);
-      return;
+    // Always clear any previous interval
+    if (breakIntervalRef.current) {
+      clearInterval(breakIntervalRef.current);
+      breakIntervalRef.current = null;
     }
-    const id = window.setInterval(() => setBreakElapsed(secondsSince(state.breakStart)), 1000);
-    return () => clearInterval(id);
-  }, [state.status, state.breakStart]);
+    if (state.status === 'paused') {
+      const pausedState = state as Paused;
+      const tick = () => setBreakElapsed(secondsSince(pausedState.breakStart));
+      tick();
+      breakIntervalRef.current = setInterval(tick, 1000);
+    } else {
+      setBreakElapsed(0);
+    }
+    // Cleanup on unmount
+    return () => {
+      if (breakIntervalRef.current) {
+        clearInterval(breakIntervalRef.current);
+        breakIntervalRef.current = null;
+      }
+    };
+  }, [state.status, state.status === 'paused' ? (state as Paused).breakStart : null]);
 
-  /* ── 3. persist or clear reducer state every time it changes ──── */
+  // Set elapsed time correctly when paused (fixes display reset on reload/tab switch)
+  useEffect(() => {
+    if (state.status === 'paused') {
+      setElapsed((state as Paused).pausedElapsed);
+    }
+  }, [state]);
+
+  // Persist or clear reducer state every time it changes
   useEffect(() => {
     if (state.status === 'idle') clearTimer();
     else save('focus.timer', state);
@@ -139,7 +192,6 @@ export const StudyTimer = () => {
         const finalBreak = state.status === 'paused' ? state.breakAcc + secondsSince(state.breakStart) : state.breakAcc;
         await endSession(state.id, { productivity: prod, note });
         await updateBreak(state.id, finalBreak);
-        // if the user is currently on /logs, refresh list
         queryClient.invalidateQueries({ queryKey: ['logs', user?.id] });
       }
       dispatch({ type: 'RESET' });
@@ -149,6 +201,15 @@ export const StudyTimer = () => {
     },
     [state],
   );
+
+  // Discard session handler
+  const handleDiscard = useCallback(() => {
+    dispatch({ type: 'RESET' });
+    setElapsed(0);
+    setBreakElapsed(0);
+    setShowFinish(false);
+    clearTimer();
+  }, []);
 
   // ── helpers ────────────────────────────────────────────
   const startedAtStr = state.status !== 'idle' ? new Date(state.start).toLocaleString() : null;
@@ -210,7 +271,14 @@ export const StudyTimer = () => {
         </div>
       )}
 
-      {showFinish && <FinishModal elapsedSecs={elapsed} onClose={() => setShowFinish(false)} onSubmit={saveFinish} />}
+      {showFinish && (
+        <FinishModal
+          elapsedSecs={elapsed}
+          onSubmit={saveFinish}
+          onClose={() => setShowFinish(false)}
+          onDiscard={handleDiscard}
+        />
+      )}
     </div>
   );
 };

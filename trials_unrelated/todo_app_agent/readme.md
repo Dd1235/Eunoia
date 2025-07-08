@@ -1,3 +1,14 @@
+# Useful commends
+
+/parent folder
+/manager
+agent.py
+/sub_agents
+/my_first_subagent
+agent.py
+
+run adk web from parent folder
+
 # What good Todos look like
 
 Creating effective todos is a mix of **clarity, psychology, and practicality**. A good todo list not only helps you remember what to do, but also motivates you to do it. Here’s how to do it **right**, with supporting psychology-based principles and resource suggestions.
