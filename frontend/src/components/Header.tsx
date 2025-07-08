@@ -17,7 +17,6 @@ import { Container } from './Layout/Container';
 
 const pages = [
   { name: 'Home', href: '/' },
-  { name: 'Dashboard', href: '/dashboard' },
   { name: 'Logs', href: '/logs' },
   { name: 'About', href: '/about' },
   { name: 'Meditate', href: '/meditate' },

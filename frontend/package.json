@@ -28,6 +28,7 @@
     "react-calendar": "^6.0.0",
     "react-calendar-heatmap": "^1.10.0",
     "react-dom": "^18.2.0",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.2",
     "recharts": "^2.15.4",
     "supabase": "^2.30.4",

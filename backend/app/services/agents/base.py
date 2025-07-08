@@ -6,5 +6,5 @@ def format_logs_input(study, sleep, mood, user_msg: str) -> str:
         f"Sleep logs ({len(sleep)}): {sleep}\n\n"
         f"Mood logs ({len(mood)}): {mood}\n\n"
         f"User question: {user_msg}\n\n"
-        "Answer helpfully and concisely, referring to the data when useful."
+        "Answer helpfully and concisely, referring to the data when useful. Return the answer in plain text. Limit to about five sentences."
     )

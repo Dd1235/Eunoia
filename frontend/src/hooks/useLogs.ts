@@ -1,5 +1,5 @@
 // src/hooks/useLogs.ts
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthContext';
 
@@ -49,3 +49,21 @@ export const useLogs = () => {
     },
   });
 };
+
+export function useDeleteLog() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ type, id }: { type: 'study' | 'sleep' | 'mood'; id: string }) => {
+      let table = '';
+      if (type === 'study') table = 'study_sessions';
+      if (type === 'sleep') table = 'sleep_logs';
+      if (type === 'mood') table = 'mood_logs';
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['logs', user?.id] });
+    },
+  });
+}

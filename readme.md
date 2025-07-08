@@ -1,4 +1,59 @@
-# Eunoia Project Structure and Technical Overview
+# Eunoia: Study & Wellness App
+
+<!--
+  Add screenshots of the app below! Recruiters love to see what the product looks like.
+  For each main page, add a screenshot, and include one for dark mode as well.
+  You can use Markdown image syntax: ![Description](path/to/screenshot.png)
+  Example: ![Home Page](screenshots/home.png)
+-->
+
+## Screenshots
+
+Below are screenshots of the main features and pages of Eunoia. Each image highlights a unique aspect of the app's user experience and functionality.
+
+---
+
+### Login Page
+
+![Login](screenshots/login.png)
+_Simple, distraction-free login with Supabase authentication._
+
+### Home Page
+
+![Home](screenshots/home.png)
+_The Home page brings together your study timer, sleep log, and mood log in a clean, two-column layout. 
+
+### Todo List
+
+![Todos](screenshots/todos.png)
+_The UI is responsive and supports editing, marking done/undone, deleting, and reordering todos. Syncs with database. So does the quick note. AI Integration is being developed_
+
+### Meditate (AI-Generated)
+
+![Generate Meditation](screenshots/generate_meditate.png)
+_Experience personalized, AI-generated meditations. Notice how the prompt entered matches your recent mood log, ensuring each meditation is tailored to your current emotional state._
+
+### Meditate (Preset Audio)
+
+![Preset Audio](screenshots/preset_audio.png)
+_Choose from a selection of calming preset audio backgrounds to enhance your meditation experience._
+
+### Logs Page
+
+![Logs](screenshots/logs.png)
+_View a unified log of your study, sleep, and mood activities. Each entry is clearly labeled with icons and can be deleted instantly. Chatbot is log aware_
+
+### User Profile
+
+![User Profile](screenshots/user.png)
+_Add or delete long term and short term goals. Would later be used as context for todo agent. Accordion too._
+
+### Dark Mode
+
+![Dark Mode](screenshots/darkmode.png)
+_Dark mode and system mode are integrated for all pages._
+
+---
 
 ## Backend
 

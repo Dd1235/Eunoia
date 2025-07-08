@@ -1,3 +1,4 @@
+// DEPRECATED: Dashboard is now included in Home. Do not use this page directly.
 import React, { FC } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
