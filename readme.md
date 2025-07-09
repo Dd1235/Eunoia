@@ -61,8 +61,7 @@ _Dark mode and system mode are integrated for all pages._
 
 - Python 3.9+
 - Supabase CLI (for local dev and migrations)
-- (Optional) Deno (for Supabase Edge Functions)
-- (Optional) Node.js (only required for frontend build tooling, not for backend or runtime)
+- Node.js (only required for frontend build tooling, not for backend or runtime)
 
 ### 1. Environment Variables
 
