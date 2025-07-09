@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Container } from '../components/Layout/Container';
 import { useLogs } from '../hooks/useLogs';
 import { useChatSession } from '../context/ChatSessionContext';
-import { LogsPanel } from '../components/Logs/LogsPanel';
-import { ChatPanel } from '../components/Logs/ChatPanel';
+import { LogsPanel } from '../components/LogsComponents/LogsPanel';
+import { ChatPanel } from '../components/LogsComponents/ChatPanel';
 
 const useRestoreSession = () => {
   const { setLogsConfig, setHistory } = useChatSession();

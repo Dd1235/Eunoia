@@ -25,7 +25,7 @@ const GoalsSection = ({
       <h2 className='mb-2 text-xl font-semibold'>Long Term Goals</h2>
       <div className='mb-4 flex gap-2'>
         <input
-          className='flex-1 rounded border px-2 py-1'
+          className='flex-1 rounded border px-2 py-1 dark:text-black'
           placeholder='Add a long term goal...'
           value={newLongGoal}
           onChange={(e) => setNewLongGoal(e.target.value)}
@@ -70,7 +70,7 @@ const GoalsSection = ({
       <h2 className='mb-2 text-xl font-semibold'>Short Term Goals</h2>
       <div className='mb-4 flex gap-2'>
         <input
-          className='flex-1 rounded border px-2 py-1'
+          className='flex-1 rounded border px-2 py-1 dark:text-black'
           placeholder='Add a short term goal...'
           value={newShortGoal}
           onChange={(e) => setNewShortGoal(e.target.value)}

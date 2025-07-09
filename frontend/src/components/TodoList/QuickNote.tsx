@@ -19,7 +19,7 @@ const QuickNote = () => {
   };
 
   return (
-    <div className='h-1/3 w-full overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+    <div className='h-1/3 min-h-[240px] w-full overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
       <h2 className='mb-2 pt-2 text-sm font-medium text-gray-600 dark:text-gray-400'>Quick Note</h2>
 
       {editing ? (
