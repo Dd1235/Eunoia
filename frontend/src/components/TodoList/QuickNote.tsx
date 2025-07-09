@@ -19,7 +19,7 @@ const QuickNote = () => {
   };
 
   return (
-    <div className='h-1/3 min-h-[240px] w-full overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+    <div className='h-auto max-h-[480px] min-h-[240px] w-full overflow-auto rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
       <h2 className='mb-2 pt-2 text-sm font-medium text-gray-600 dark:text-gray-400'>Quick Note</h2>
 
       {editing ? (
@@ -29,7 +29,7 @@ const QuickNote = () => {
             onChange={(e) => setDraft(e.target.value)}
             rows={6}
             placeholder='Type your thoughts...'
-            className='w-full resize-none rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-900 shadow-sm focus:border-black focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:border-white'
+            className='max-h-[320px] min-h-[96px] w-full resize-y rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-900 shadow-sm focus:border-black focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:border-white'
           />
           <button
             onClick={handleSave}
@@ -42,7 +42,7 @@ const QuickNote = () => {
       ) : (
         <div
           onDoubleClick={() => setEditing(true)}
-          className='min-h-[96px] cursor-text overflow-y-auto rounded-md border border-dashed border-gray-300 p-2 text-sm text-gray-800 dark:border-gray-600 dark:text-gray-300'
+          className='max-h-[320px] min-h-[96px] cursor-text overflow-y-auto rounded-md border border-dashed border-gray-300 p-2 text-sm text-gray-800 dark:border-gray-600 dark:text-gray-300'
         >
           {isLoading ? 'Loading note...' : note?.content || 'Double-click to write a note.'}
         </div>
