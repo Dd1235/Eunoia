@@ -39,7 +39,7 @@ export const useLogs = () => {
         throw new Error('Failed to fetch logs');
 
       return {
-        study: study.data ?? [],
+        study: (study.data ?? []).filter((s) => s.ended_at),
         sleep: sleep.data ?? [],
         mood: (mood.data ?? []).map((m) => ({
           ...m,

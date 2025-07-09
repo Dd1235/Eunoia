@@ -1,3 +1,5 @@
+// src/components/StudyTimer/FinishModal.tsx
+
 import type { FC, FormEvent } from 'react';
 import { useState } from 'react';
 import clsx from 'clsx';

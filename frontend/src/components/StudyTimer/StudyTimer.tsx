@@ -4,11 +4,15 @@ import { PlayIcon, PauseIcon, StopIcon } from '@heroicons/react/24/solid';
 import { useCallback, useEffect, useReducer, useState, useRef } from 'react';
 import { Clock } from './Clock';
 import { FinishModal } from './FinishModal';
-import { startSession, updateBreak, endSession } from '../../lib/studySessions';
+import { startSession, updateBreak, endSession, getActiveSessionForUser } from '../../lib/studySessions';
 import { load, save } from 'lib/persist';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 const clearTimer = () => localStorage.removeItem('focus.timer');
+
+function secondsSince(ms: number) {
+  return Math.floor((Date.now() - ms) / 1000);
+}
 
 type Running = {
   status: 'running';
@@ -66,10 +70,6 @@ function reducer(state: State, action: Action): State {
     default:
       return state;
   }
-}
-
-function secondsSince(ms: number) {
-  return Math.floor((Date.now() - ms) / 1000);
 }
 
 export const StudyTimer = () => {
@@ -159,25 +159,35 @@ export const StudyTimer = () => {
 
   // ── actions ────────────────────────────────────────────
   const handleStart = useCallback(async () => {
+    if (!user?.id) return;
+    // Check for existing active session
+    const active = await getActiveSessionForUser(user.id);
+    if (active) {
+      console.log('[StudyTimer] Reusing existing session:', active.id);
+      dispatch({ type: 'START', id: active.id, start: new Date(active.started_at).getTime() });
+      return;
+    }
     try {
       const s = await startSession();
+      console.log('[StudyTimer] Started new session:', s.id);
       dispatch({ type: 'START', id: s.id, start: Date.now() });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('startSession failed', e);
       dispatch({ type: 'START', id: crypto.randomUUID(), start: Date.now() });
     }
-  }, []);
+  }, [user]);
 
-  const handlePause = useCallback(async () => {
+  const handlePause = useCallback(() => {
     if (state.status !== 'running') return;
+    console.log('[StudyTimer] Paused');
     dispatch({ type: 'PAUSE', breakStart: Date.now() });
   }, [state]);
 
-  const handleResume = useCallback(async () => {
+  const handleResume = useCallback(() => {
     if (state.status !== 'paused') return;
+    console.log('[StudyTimer] Resumed');
     const breakSecs = secondsSince(state.breakStart);
-    await updateBreak(state.id, state.breakAcc + breakSecs);
     dispatch({ type: 'RESUME', breakSeconds: breakSecs });
   }, [state]);
 
@@ -193,13 +203,14 @@ export const StudyTimer = () => {
         await endSession(state.id, { productivity: prod, note });
         await updateBreak(state.id, finalBreak);
         queryClient.invalidateQueries({ queryKey: ['logs', user?.id] });
+        console.log('[StudyTimer] Ended session:', state.id);
       }
       dispatch({ type: 'RESET' });
       setElapsed(0);
       setBreakElapsed(0);
       setShowFinish(false);
     },
-    [state],
+    [state, user],
   );
 
   // Discard session handler
