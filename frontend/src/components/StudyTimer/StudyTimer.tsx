@@ -168,7 +168,7 @@ export const StudyTimer = () => {
       return;
     }
     try {
-      const s = await startSession();
+      const s = await startSession(user.id);
       console.log('[StudyTimer] Started new session:', s.id);
       dispatch({ type: 'START', id: s.id, start: Date.now() });
     } catch (e) {

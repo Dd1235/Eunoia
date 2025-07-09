@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 
 from app.core.config import settings
@@ -145,3 +146,49 @@ def get_short_term_goals(user_id: str):
         .execute()
     )
     return res.data if hasattr(res, "data") else []
+
+
+def get_chat_session(user_id: str, session_id: str):
+    res = (
+        supabase.table("chat_sessions")
+        .select("logs,history")
+        .eq("user_id", user_id)
+        .eq("session_id", session_id)
+        .single()
+        .execute()
+    )
+    if not hasattr(res, "data") or not res.data:
+        return None
+    row = res.data
+    return {
+        "logs": (
+            row["logs"] if isinstance(row["logs"], dict) else json.loads(row["logs"])
+        ),
+        "history": (
+            row["history"]
+            if isinstance(row["history"], list)
+            else json.loads(row["history"])
+        ),
+    }
+
+
+def create_chat_session(user_id: str, session_id: str, logs: dict):
+    supabase.table("chat_sessions").delete().eq("user_id", user_id).execute()
+    supabase.table("chat_sessions").insert(
+        {
+            "user_id": user_id,
+            "session_id": session_id,
+            "logs": json.dumps(logs),
+            "history": json.dumps([]),
+        }
+    ).execute()
+
+
+def update_chat_history(user_id: str, session_id: str, history: list):
+    supabase.table("chat_sessions").update({"history": json.dumps(history)}).eq(
+        "user_id", user_id
+    ).eq("session_id", session_id).execute()
+
+
+def delete_chat_session(user_id: str):
+    supabase.table("chat_sessions").delete().eq("user_id", user_id).execute()

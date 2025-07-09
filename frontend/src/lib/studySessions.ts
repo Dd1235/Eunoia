@@ -12,24 +12,20 @@ export async function getActiveSessionForUser(userId: string): Promise<StudySess
     .limit(1)
     .single();
   if (error && error.code !== 'PGRST116') { // PGRST116: No rows found
-    console.error('[getActiveSessionForUser] Error:', error);
     throw error;
   }
   if (!data) return null;
-  console.log('[getActiveSessionForUser] Found active session:', data.id);
   return data as StudySession;
 }
 
 /** create a new row and return it */
-export async function startSession(): Promise<StudySession> {
-  console.log('[startSession] current user ⇒', await supabase.auth.getUser());
+export async function startSession(userId: string): Promise<StudySession> {
   const { data, error } = await supabase
     .from('study_sessions')
-    .insert({ started_at: new Date().toISOString(), total_break_secs: 0 })
+    .insert({ user_id: userId, started_at: new Date().toISOString(), total_break_secs: 0 })
     .select()
     .single();
   if (error) throw new Error(error.message);
-  console.log('[startSession] Created new session:', data.id);
   return data as StudySession;
 }
 
@@ -38,7 +34,6 @@ export async function updateBreak(
   id: string,
   totalBreakSecs: number,
 ): Promise<void> {
-  console.log('[updateBreak] Updating break for session:', id, 'to', totalBreakSecs);
   const { error } = await supabase
     .from('study_sessions')
     .update({ total_break_secs: totalBreakSecs })
@@ -51,7 +46,6 @@ export async function endSession(
   id: string,
   payload: { productivity: number; note: string },
 ): Promise<void> {
-  console.log('[endSession] Ending session:', id, payload);
   const { error } = await supabase
     .from('study_sessions')
     .update({
