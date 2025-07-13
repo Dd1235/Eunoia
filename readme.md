@@ -55,6 +55,8 @@ _Dark mode and system mode are integrated for all pages._
 
 ---
 
+Play any of [these](https://github.com/Dd1235/Eunoia/tree/main/backend/generated_audios) for samples of ai generated meditaitons.
+
 ## Usage & Setup
 
 ### Prerequisites
@@ -97,9 +99,7 @@ You must configure environment variables for both the frontend and backend. See 
 
 ### 6. Database Schema Screenshot
 
-
 ![Schema](screenshots/tables.png)
-
 
 ---
 
