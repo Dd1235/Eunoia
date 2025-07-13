@@ -20,12 +20,10 @@ const MeditateWithAI = () => {
       <ModeSelector currentMode={mode} setMode={setMode} />
       {/* 
       {mode === 'preset' ? <PresetPlayer /> : <GeneratedMeditation />} */}
-      {FEATURE_FLAGS.meditationEnabled ? (
-        mode === 'preset' ? (
-          <PresetPlayer />
-        ) : (
-          <GeneratedMeditation />
-        )
+      {mode === 'preset' ? (
+        <PresetPlayer />
+      ) : FEATURE_FLAGS.meditationEnabled ? (
+        <GeneratedMeditation />
       ) : (
         <div className='rounded-lg border border-dashed p-4 text-sm text-gray-500 dark:text-gray-400'>
           Meditation generation is temporarily disabled in this version. Coming in v2!
