@@ -6,6 +6,7 @@ import { useLogs } from '../hooks/useLogs';
 import { useChatSession } from '../context/ChatSessionContext';
 import { LogsPanel } from '../components/LogsComponents/LogsPanel';
 import { ChatPanel } from '../components/LogsComponents/ChatPanel';
+import { FEATURE_FLAGS } from '@/config/featureFlags';
 
 const useRestoreSession = () => {
   const { setLogsConfig, setHistory } = useChatSession();
@@ -47,7 +48,13 @@ const Logs = () => {
       </div>
       <div className='flex h-[70vh] flex-col gap-6 md:flex-row'>
         <LogsPanel logs={logs} logsConfig={logsConfig} setLogsConfig={setLogsConfig} />
-        <ChatPanel />
+        {FEATURE_FLAGS.chatEnabled ? (
+          <ChatPanel />
+        ) : (
+          <div className='flex items-center justify-center rounded-lg border border-dashed p-4 text-sm text-gray-500 dark:text-gray-400'>
+            AI Chat will be available later.
+          </div>
+        )}
       </div>
     </Container>
   );
